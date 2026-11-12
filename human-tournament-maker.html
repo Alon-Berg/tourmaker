@@ -1,0 +1,2031 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Human Tournament Maker</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%23222'/%3E%3Crect x='0' y='0' width='8' height='8' fill='%23484848'/%3E%3Crect x='8' y='8' width='8' height='8' fill='%23484848'/%3E%3Cpath d='M4 3h2v4l3-4h2.2L7.6 7.6 11.4 13H9L6 8.8V13H4z' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+/* Human Tournament Maker - plain, classic desktop look (in the spirit of Swiss-Manager / SP98 Sevilla): grey window, white panels, thin borders, no colour accents */
+:root {
+  --bg: #f0f0f0; --panel: #ffffff; --panel2: #f6f6f6; --head: #e4e4e4;
+  --line: #9c9c9c; --line2: #d0d0d0; --text: #000000; --muted: #505050; --faint: #808080;
+  --sel: #d3e2f4; --hover: #eaf1fa; --pend: #fff7d6;
+  --good: #1d5d1d; --bad: #8a1c1c; --warn: #6e5200;
+  --font: "Segoe UI", Tahoma, Arial, sans-serif; --mono: Consolas, "Courier New", monospace;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body { background: var(--bg); color: var(--text); font: 13px/1.35 var(--font); overflow: hidden; }
+button, input, select, textarea { font: inherit; color: inherit; }
+.hidden { display: none !important; }
+.mono { font-family: var(--mono); }
+.muted { color: var(--muted); } .faint { color: var(--faint); } .good { color: var(--good); } .bad { color: var(--bad); } .warn { color: var(--warn); }
+.right { text-align: right; } .center { text-align: center; } .nowrap { white-space: nowrap; }
+.spacer { flex: 1; }
+
+/* window frame: title line, classic tabs, content */
+#app { display: flex; flex-direction: column; height: 100vh; }
+.topbar { display: flex; align-items: flex-end; gap: 16px; padding: 6px 10px 0; background: var(--head); border-bottom: 1px solid var(--line); flex: none; flex-wrap: wrap; }
+.brand { font-weight: 700; font-size: 14px; padding-bottom: 4px; display: flex; align-items: center; gap: 7px; cursor: default; }
+.brand svg { display: block; }
+.tabs { display: flex; gap: 2px; flex-wrap: wrap; }
+.tab-btn { background: #d6d6d6; border: 1px solid var(--line); border-bottom: 0; padding: 4px 16px; cursor: pointer; position: relative; top: 1px; }
+.tab-btn:hover { background: #e6e6e6; } .tab-btn.active { background: var(--bg); font-weight: 600; padding-bottom: 5px; }
+.top-tools { display: flex; gap: 4px; align-items: center; padding-bottom: 4px; flex-wrap: wrap; }
+#top-status { color: var(--muted); padding-bottom: 6px; font-size: 12px; }
+main { flex: 1 1 auto; min-height: 0; overflow: auto; padding: 10px; position: relative; }
+
+/* controls */
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; background: #e1e1e1; border: 1px solid #adadad; color: var(--text); padding: 2px 12px; cursor: pointer; white-space: nowrap; min-height: 23px; }
+.btn:hover { background: var(--hover); border-color: #707070; } .btn:active { background: #d3e2f4; }
+.btn.primary { font-weight: 700; border-color: #333; } .btn.ghost { background: transparent; border-color: transparent; } .btn.ghost:hover { background: var(--hover); border-color: #adadad; }
+.btn.sm { padding: 0 8px; min-height: 21px; font-size: 12.5px; } .btn.lg { padding: 4px 20px; min-height: 28px; }
+.btn[disabled] { color: #8a8a8a; border-color: #c4c4c4; background: #efefef; pointer-events: none; }
+.input, .select, textarea.input { background: #fff; border: 1px solid #7a7a7a; padding: 2px 5px; min-width: 0; width: 100%; outline: none; min-height: 23px; }
+.input:focus, .select:focus, textarea.input:focus { border-color: #000; }
+.input.num { width: 78px; text-align: right; font-family: var(--mono); }
+.input.sm { width: 64px; } .select { padding: 1px 3px; }
+.select.auto, .input.auto { width: auto; }
+textarea.input { resize: vertical; font-family: var(--mono); }
+input[type=checkbox] { margin: 0; width: 14px; height: 14px; cursor: pointer; }
+label.check { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; user-select: none; }
+.chip { display: inline-flex; align-items: center; padding: 0 9px; background: #e1e1e1; border: 1px solid #adadad; cursor: pointer; font-size: 12.5px; user-select: none; min-height: 23px; }
+.chip:hover { background: var(--hover); border-color: #707070; } .chip.on { background: #fff; border-color: #000; font-weight: 700; } .chip.done { color: var(--good); } .chip.off { color: var(--faint); }
+.badge { display: inline-block; padding: 0 5px; font-size: 12px; background: #f2f2f2; border: 1px solid #b4b4b4; color: #333; }
+.seg { display: inline-flex; background: #e1e1e1; border: 1px solid #adadad; }
+.seg button { background: none; border: 0; padding: 2px 12px; cursor: pointer; min-height: 21px; } .seg button:hover { background: var(--hover); } .seg button.on { background: #fff; font-weight: 600; box-shadow: inset 0 0 0 1px #555; }
+
+/* panels */
+.card { background: var(--panel); border: 1px solid var(--line); padding: 8px 10px; }
+.card + .card { margin-top: 10px; }
+.card > h3, .card .h { margin: 0 0 8px; padding-bottom: 4px; border-bottom: 1px solid var(--line2); font-size: 13px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+.grid2 { display: grid; grid-template-columns: minmax(320px, 1fr) minmax(320px, 1fr); gap: 10px; align-items: start; }
+.field { display: grid; grid-template-columns: 150px 1fr; gap: 4px 10px; align-items: center; margin: 5px 0; }
+.field > label { color: var(--text); }
+.field .inline { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.hr { height: 1px; background: var(--line2); margin: 8px 0; }
+.help { color: var(--muted); font-size: 12px; margin-top: 3px; }
+.row { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.toolbar { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin-bottom: 8px; }
+.msg { padding: 5px 8px; border: 1px solid var(--line); background: var(--panel2); margin: 0 0 8px; }
+.msg.warn { background: var(--pend); border-color: #b59a2a; } .msg.err { color: var(--bad); border-color: var(--bad); background: #fff; }
+
+/* tables as plain grids */
+.tbl { border-collapse: collapse; font-size: 13px; background: #fff; }
+.tbl.full { width: 100%; }
+.tbl th { text-align: left; padding: 2px 6px; border: 1px solid #b8b8b8; position: sticky; top: -10px; background: #e4e4e4; z-index: 1; font-weight: 600; white-space: nowrap; }
+.tbl td { padding: 1px 6px; border: 1px solid var(--line2); white-space: nowrap; }
+.tbl tbody tr:nth-child(even) td { background: #f7f7f7; }
+.tbl tbody tr:hover td { background: var(--hover) !important; } .tbl tr.sel td { background: var(--sel) !important; }
+.tbl tr.pend td { background: var(--pend) !important; }
+.tbl tr.off td { color: var(--faint); }
+.tbl .r { text-align: right; } .tbl .c { text-align: center; }
+.tbl.click tbody tr { cursor: pointer; }
+.tbl td.name { min-width: 150px; } .tbl td.sep { border-left: 2px solid #777; }
+.tbl input.cell, .tbl select.cell { border: 1px solid transparent; background: transparent; width: 100%; padding: 1px 3px; min-height: 21px; }
+.tbl input.cell:hover, .tbl select.cell:hover { border-color: #b8b8b8; background: #fff; } .tbl input.cell:focus, .tbl select.cell:focus { border-color: #000; background: #fff; outline: none; }
+.tbl td.in { padding: 0; }
+.tbl .tag { font-size: 11.5px; color: var(--muted); }
+.board-tbl td.pl { min-width: 190px; } .board-tbl td.res { width: 110px; padding: 0; } .board-tbl select.cell { text-align: center; }
+.board-tbl tr:focus { outline: 2px solid #000; outline-offset: -2px; }
+.xt td, .xt th { text-align: center; min-width: 32px; padding: 1px 4px; font-size: 12px; }
+.xt td.self { background: #cfcfcf !important; } .xt td.nm { text-align: left; white-space: nowrap; min-width: 150px; font-size: 13px; }
+.scroll { overflow: auto; }
+
+/* knockout bracket */
+.bracket { display: flex; gap: 22px; align-items: stretch; overflow: auto; padding-bottom: 8px; }
+.bracket .rnd { display: flex; flex-direction: column; justify-content: space-around; gap: 10px; min-width: 210px; }
+.bracket .rnd h4 { margin: 0 0 4px; font-size: 12.5px; color: var(--muted); font-weight: 600; text-align: center; }
+.bracket .match { background: #fff; border: 1px solid #888; cursor: pointer; } .bracket .match:hover { background: var(--hover); }
+.bracket .match div { display: flex; justify-content: space-between; gap: 8px; padding: 2px 6px; min-height: 22px; } .bracket .match div.win { font-weight: 700; background: #ececec; } .bracket .match div + div { border-top: 1px solid var(--line2); }
+.bracket .match .seed { color: var(--faint); width: 22px; flex: none; }
+.bracket .match .nm { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bracket .match .gm { font-size: 11.5px; color: var(--muted); padding: 1px 6px; border-top: 1px solid var(--line2); min-height: 0; }
+
+/* misc */
+.empty { text-align: center; color: var(--muted); padding: 26px 10px; }
+.empty b { display: block; color: var(--text); font-size: 14px; margin-bottom: 4px; }
+.kv { display: grid; grid-template-columns: auto 1fr; gap: 2px 12px; } .kv dt { color: var(--muted); } .kv dd { margin: 0; }
+#toast-root { position: fixed; right: 14px; bottom: 14px; display: flex; flex-direction: column; gap: 6px; z-index: 100; }
+.toast { background: #fff; border: 1px solid #555; padding: 6px 10px; max-width: 420px; box-shadow: 2px 2px 0 rgba(0, 0, 0, .25); } .toast.err { color: var(--bad); border-color: var(--bad); }
+.modal-back { position: fixed; inset: 0; background: rgba(0, 0, 0, .35); display: flex; align-items: center; justify-content: center; z-index: 90; padding: 20px; }
+.modal { background: var(--bg); border: 1px solid #555; box-shadow: 3px 3px 0 rgba(0, 0, 0, .3); width: min(720px, 100%); max-height: 92vh; display: flex; flex-direction: column; }
+.modal > header { padding: 5px 10px; font-weight: 700; background: var(--head); border-bottom: 1px solid var(--line); display: flex; align-items: center; }
+.modal > .body { padding: 10px; overflow: auto; background: var(--panel); margin: 8px; border: 1px solid var(--line2); }
+.modal > footer { padding: 0 8px 8px; display: flex; gap: 6px; justify-content: flex-end; }
+.print-only { display: none; }
+#drop { position: fixed; inset: 0; background: rgba(255, 255, 255, .85); border: 3px dashed #555; display: none; align-items: center; justify-content: center; font-size: 20px; z-index: 120; }
+body.dragging #drop { display: flex; }
+
+@media (max-width: 900px) { .grid2 { grid-template-columns: 1fr; } .field { grid-template-columns: 1fr; } }
+
+/* printing: only the content, as plain black on white */
+@media print {
+  html, body { height: auto; overflow: visible; background: #fff; }
+  #app { height: auto; } .topbar, .toolbar, .noprint, #toast-root, #drop { display: none !important; }
+  main { overflow: visible; padding: 0; } .print-only { display: block; margin: 0 0 8px; }
+  .print-only h1 { font-size: 16pt; margin: 0; } .print-only p { margin: 2px 0; color: #000; }
+  .card { border: 0; padding: 0; } .card > h3, .card .h { border-bottom: 1px solid #000; }
+  .tbl th { position: static; background: #fff; border-color: #000; } .tbl td { border-color: #555; } .tbl tbody tr:nth-child(even) td { background: #fff; } .tbl tr.pend td { background: #fff !important; }
+  .tbl input.cell, .tbl select.cell { border: 0; background: transparent; appearance: none; -webkit-appearance: none; }
+  body { font-size: 11pt; } .tbl { font-size: 10.5pt; } .tbl th { white-space: normal; }
+  @page { margin: 12mm; }
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <header class="topbar" id="topbar"></header>
+  <main id="main"></main>
+</div>
+<div id="toast-root"></div>
+<div id="modal-root"></div>
+<div id="drop">Drop a tournament file here</div>
+<script>
+/* Human Tournament Maker - core: data model, scoring, standings and tie-breaks.
+   Pure logic, no DOM. Loaded as a classic script in the browser and imported by the tests (Deno). */
+(function (root) {
+  'use strict';
+  const HTM = root.HTM = root.HTM || {};
+  const EPS = 1e-9;
+
+  HTM.VERSION = 1;
+  HTM.FORMATS = { swiss: 'Swiss system', roundrobin: 'Round robin', knockout: 'Knockout' };
+  HTM.RESULTS = ['1-0', '1/2', '0-1', '+-', '-+', '--'];                       // 1/2 = draw; +- / -+ = forfeit win for White / Black; -- = both lose
+  HTM.RESULT_LABEL = { '1-0': '1 - 0', '1/2': '½ - ½', '0-1': '0 - 1', '+-': '+ : -', '-+': '- : +', '--': '- : -' };
+  HTM.TITLES = ['', 'GM', 'IM', 'FM', 'CM', 'WGM', 'WIM', 'WFM', 'WCM'];
+  HTM.TITLE_ORDER = { GM: 1, IM: 2, WGM: 3, FM: 4, WIM: 5, CM: 6, WFM: 7, WCM: 8, '': 9 };
+  HTM.BYE_LABEL = { pab: 'Bye', half: 'Half-point bye', zero: 'Zero-point bye', full: 'Full-point bye', rest: 'Rest' };
+
+  HTM.TIEBREAKS = [
+    { id: 'de', short: 'DE', name: 'Direct encounter', hint: 'Points scored between the tied players (used only when they all met each other)' },
+    { id: 'wins', short: 'Wins', name: 'Number of wins', hint: 'Games won over the board' },
+    { id: 'blackwins', short: 'BWins', name: 'Wins with Black', hint: 'Games won with the black pieces' },
+    { id: 'blackgames', short: 'BGames', name: 'Games with Black', hint: 'More games with Black ranks higher' },
+    { id: 'buchholz', short: 'Bch', name: 'Buchholz', hint: 'Sum of the scores of the opponents' },
+    { id: 'buchholz1', short: 'Bch-1', name: 'Buchholz Cut 1', hint: 'Buchholz without the lowest opponent score' },
+    { id: 'buchholz2', short: 'Bch-2', name: 'Buchholz Cut 2', hint: 'Buchholz without the two lowest opponent scores' },
+    { id: 'median1', short: 'Med', name: 'Median Buchholz', hint: 'Buchholz without the highest and the lowest opponent score' },
+    { id: 'median2', short: 'Med-2', name: 'Median Buchholz 2', hint: 'Buchholz without the two highest and the two lowest opponent scores' },
+    { id: 'sb', short: 'SB', name: 'Sonneborn-Berger', hint: 'Scores of the beaten opponents plus half of the scores of the drawn ones' },
+    { id: 'ps', short: 'Prog', name: 'Progressive score', hint: 'Sum of the running scores after each round' },
+    { id: 'koya', short: 'Koya', name: 'Koya system', hint: 'Points against opponents who scored at least 50%' },
+    { id: 'aro', short: 'ARO', name: 'Average rating of opponents', hint: 'Average rating of the rated opponents met over the board' },
+    { id: 'tpr', short: 'TPR', name: 'Performance rating', hint: 'FIDE performance rating over the board' },
+    { id: 'rating', short: 'Rtg', name: 'Rating', hint: 'Higher rating first' },
+  ];
+  HTM.TB = {}; HTM.TIEBREAKS.forEach((t) => { HTM.TB[t.id] = t; });
+
+  HTM.uid = (p) => (p || 'x') + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+  HTM.clone = (o) => JSON.parse(JSON.stringify(o));
+  HTM.isNum = (x) => typeof x === 'number' && isFinite(x);
+
+  HTM.defaultOpts = function (format) {
+    return {
+      rounds: format === 'swiss' ? 5 : 0,              // planned rounds (Swiss); the others derive it
+      doubleRR: false,                                 // round robin: every pair meets twice
+      firstColor: 'white',                             // colour of the top seed on board 1 in round 1
+      win: 1, draw: 0.5, loss: 0,                      // points per game
+      forfeitWin: 1,                                   // points for a win by forfeit
+      pab: 1, halfBye: 0.5, zeroBye: 0, fullBye: 1,    // points for byes
+      tiebreaks: format === 'roundrobin' ? ['sb', 'de', 'wins'] : ['buchholz1', 'buchholz', 'sb', 'wins'],
+      koGames: 2,                                      // games per knockout match
+      showTitle: true, showRating: true, showFed: false, showClub: true,
+    };
+  };
+
+  HTM.newTournament = function (init) {
+    init = init || {};
+    const fmt = init.format || 'swiss';
+    const now = new Date().toISOString();
+    const T = {
+      v: HTM.VERSION, id: HTM.uid('t'), created: now, modified: now,
+      name: init.name || 'New tournament', city: init.city || '', organizer: init.organizer || '', arbiter: init.arbiter || '',
+      startDate: init.startDate || '', endDate: init.endDate || '', timeControl: init.timeControl || '', notes: init.notes || '',
+      format: fmt, opts: HTM.defaultOpts(fmt), players: [], nextPlayerId: 1, rounds: [], ko: null, started: false,
+    };
+    if (init.rounds) T.opts.rounds = init.rounds;
+    return T;
+  };
+
+  // ------------------------------------------------------------------------------------------------ players
+  HTM.newPlayer = function (T, f) {
+    f = f || {};
+    const p = {
+      id: T.nextPlayerId++, no: 0, name: (f.name || '').trim(), title: f.title || '', rating: HTM.isNum(+f.rating) && +f.rating > 0 ? Math.round(+f.rating) : 0,
+      fed: (f.fed || '').trim(), club: (f.club || '').trim(), withdrawn: null, byes: {},
+    };
+    return p;
+  };
+  HTM.addPlayer = function (T, f) {
+    const p = HTM.newPlayer(T, f);
+    p.no = T.players.reduce((m, q) => Math.max(m, q.no), 0) + 1;
+    T.players.push(p);
+    return p;
+  };
+  HTM.addLatePlayer = function (T, f, kind) {          // Swiss: a player who joins after round 1 gets a bye (kind: 'zero' or 'half') for each round already paired
+    const p = HTM.addPlayer(T, f);
+    for (const rd of T.rounds) rd.byes.push({ p: p.id, kind });
+    return p;
+  };
+  HTM.playerMap = (T) => new Map(T.players.map((p) => [p.id, p]));
+  HTM.renumber = function (T) { T.players.sort((a, b) => a.no - b.no); T.players.forEach((p, i) => { p.no = i + 1; }); };
+  HTM.sortByRating = function (T) {                    // starting ranks by rating, then title, then name (only before the first round)
+    T.players.sort((a, b) => (b.rating - a.rating) || ((HTM.TITLE_ORDER[a.title] || 9) - (HTM.TITLE_ORDER[b.title] || 9)) || a.name.localeCompare(b.name) || a.id - b.id);
+    T.players.forEach((p, i) => { p.no = i + 1; });
+  };
+  HTM.removePlayer = function (T, id) { T.players = T.players.filter((p) => p.id !== id); HTM.renumber(T); };
+  HTM.playersByNo = (T) => T.players.slice().sort((a, b) => a.no - b.no);
+  HTM.isActive = (p, r) => p.withdrawn === null || p.withdrawn === undefined || r < p.withdrawn;      // withdrawn = first round the player does not play
+  HTM.plannedRounds = function (T) {
+    const n = T.players.length;
+    if (T.format === 'roundrobin') return n < 2 ? 0 : (n % 2 ? n : n - 1) * (T.opts.doubleRR ? 2 : 1);
+    if (T.format === 'knockout') { let r = 0, s = 1; while (s < n) { s *= 2; r++; } return r; }
+    return T.opts.rounds || 0;
+  };
+
+  // ------------------------------------------------------------------------------------------------ scoring
+  HTM.byePoints = function (O, kind) {
+    switch (kind) {
+      case 'pab': return O.pab; case 'half': return O.halfBye; case 'zero': return O.zeroBye; case 'full': return O.fullBye; default: return 0;
+    }
+  };
+  function comp(O, x) {                                // the result of the virtual opponent of an unplayed game
+    if (Math.abs(x - O.win) < EPS) return O.loss;
+    if (Math.abs(x - O.loss) < EPS) return O.win;
+    if (Math.abs(x - O.draw) < EPS) return O.draw;
+    return O.win + O.loss - x;
+  }
+
+  // One entry per player and round: what happened to the player in that round.
+  // kind: game | forfeitWin | forfeitLoss | doubleForfeit | pending | pab | half | zero | full | rest | absent
+  HTM.playerEntries = function (T, upto) {
+    const O = T.opts;
+    const map = new Map(); T.players.forEach((p) => map.set(p.id, []));
+    const R = Math.max(0, Math.min(upto == null ? T.rounds.length : upto, T.rounds.length));
+    for (let r = 1; r <= R; r++) {
+      const rd = T.rounds[r - 1];
+      const seen = new Set();
+      for (const g of rd.games) {
+        const w = { r, opp: g.b, color: 'w', kind: 'pending', pts: 0, frac: 0, out: null };
+        const b = { r, opp: g.w, color: 'b', kind: 'pending', pts: 0, frac: 0, out: null };
+        switch (g.res) {
+          case '1-0': w.kind = b.kind = 'game'; w.pts = O.win; b.pts = O.loss; w.out = 'W'; b.out = 'L'; w.frac = 1; break;
+          case '0-1': w.kind = b.kind = 'game'; w.pts = O.loss; b.pts = O.win; w.out = 'L'; b.out = 'W'; b.frac = 1; break;
+          case '1/2': w.kind = b.kind = 'game'; w.pts = b.pts = O.draw; w.out = b.out = 'D'; w.frac = b.frac = 0.5; break;
+          case '+-': w.kind = 'forfeitWin'; b.kind = 'forfeitLoss'; w.pts = O.forfeitWin; b.pts = O.loss; w.out = 'W'; b.out = 'L'; w.frac = 1; break;
+          case '-+': w.kind = 'forfeitLoss'; b.kind = 'forfeitWin'; w.pts = O.loss; b.pts = O.forfeitWin; w.out = 'L'; b.out = 'W'; b.frac = 1; break;
+          case '--': w.kind = b.kind = 'doubleForfeit'; w.pts = b.pts = O.loss; w.out = b.out = 'L'; break;
+          default: break;
+        }
+        if (map.has(g.w)) { map.get(g.w).push(w); seen.add(g.w); }
+        if (map.has(g.b)) { map.get(g.b).push(b); seen.add(g.b); }
+      }
+      for (const bye of rd.byes || []) {
+        if (!map.has(bye.p)) continue;
+        const pts = HTM.byePoints(O, bye.kind);
+        const frac = bye.kind === 'pab' || bye.kind === 'full' ? 1 : bye.kind === 'half' ? 0.5 : 0;
+        map.get(bye.p).push({ r, opp: null, color: null, kind: bye.kind, pts, frac, out: frac === 1 ? 'W' : frac === 0.5 ? 'D' : 'L' });
+        seen.add(bye.p);
+      }
+      for (const p of T.players) if (!seen.has(p.id)) map.get(p.id).push({ r, opp: null, color: null, kind: 'absent', pts: 0, frac: 0, out: 'L' });
+    }
+    return map;
+  };
+
+  // ------------------------------------------------------------------------------------------------ performance rating
+  const DP = [0, 7, 14, 21, 29, 36, 43, 50, 57, 65, 72, 80, 87, 95, 102, 110, 117, 125, 133, 141, 149, 158, 166, 175, 184, 193, 202, 211, 220, 230, 240, 251, 262, 273, 284, 296, 309, 322, 336, 351, 366, 383, 401, 422, 444, 470, 501, 538, 589, 677, 800];
+  HTM.ratingDiff = function (p) {                      // FIDE table: expected score -> rating difference (p = score / games)
+    const k = Math.max(0, Math.min(100, Math.round(p * 100)));
+    return k >= 50 ? DP[k - 50] : -DP[50 - k];
+  };
+
+  // ------------------------------------------------------------------------------------------------ standings
+  HTM.standings = function (T, upto) {
+    const O = T.opts, W = O.win, D = O.draw;
+    const R = Math.max(0, Math.min(upto == null ? T.rounds.length : upto, T.rounds.length));
+    const ent = HTM.playerEntries(T, R);
+    const byId = new Map(), rows = [];
+    for (const p of T.players) {
+      const es = ent.get(p.id);
+      const before = [0], cum = [0];
+      let pts = 0, games = 0, wins = 0, blackWins = 0, blackGames = 0, pending = 0;
+      for (const e of es) {
+        before[e.r] = pts; pts += e.pts; cum[e.r] = pts;
+        if (e.kind === 'game') { games++; if (e.out === 'W') { wins++; if (e.color === 'b') blackWins++; } if (e.color === 'b') blackGames++; }
+        if (e.kind === 'pending') pending++;
+      }
+      const row = { p, no: p.no, entries: es, points: pts, before, cum, games, wins, blackWins, blackGames, pending, tb: {}, tbShow: {}, rank: 0, tied: false };
+      rows.push(row); byId.set(p.id, row);
+    }
+    const tnr = R;
+    // scores of the opponents; an unplayed game counts against a virtual opponent (FIDE Tie-Break Regulations)
+    const oppScores = (row) => {
+      const out = [];
+      for (const e of row.entries) {
+        if (e.kind === 'pending' || e.kind === 'rest') continue;
+        if (e.kind === 'game') { const o = byId.get(e.opp); out.push({ e, sc: o ? o.points : 0 }); }
+        else out.push({ e, sc: row.before[e.r] + comp(O, e.pts) + D * (tnr - e.r) });
+      }
+      return out;
+    };
+    const wanted = new Set(O.tiebreaks);
+    for (const row of rows) {
+      const os = (wanted.has('buchholz') || wanted.has('buchholz1') || wanted.has('buchholz2') || wanted.has('median1') || wanted.has('median2') || wanted.has('sb')) ? oppScores(row) : [];
+      const list = os.map((x) => x.sc).sort((a, b) => a - b);
+      const sum = (a) => a.reduce((s, x) => s + x, 0);
+      const cut = (lo, hi) => (list.length > lo + hi ? sum(list.slice(lo, list.length - hi)) : 0);
+      row.tb.buchholz = sum(list);
+      row.tb.buchholz1 = cut(1, 0);
+      row.tb.buchholz2 = cut(2, 0);
+      row.tb.median1 = cut(1, 1);
+      row.tb.median2 = cut(2, 2);
+      row.tb.sb = os.reduce((s, x) => s + x.e.frac * x.sc, 0);
+      row.tb.wins = row.wins;
+      row.tb.blackwins = row.blackWins;
+      row.tb.blackgames = row.blackGames;
+      row.tb.ps = row.cum.slice(1).reduce((s, x) => s + x, 0);
+      row.tb.rating = row.p.rating || 0;
+      const otb = row.entries.filter((e) => e.kind === 'game');
+      const rated = otb.filter((e) => { const o = byId.get(e.opp); return o && o.p.rating > 0; });
+      row.tb.aro = rated.length ? rated.reduce((s, e) => s + byId.get(e.opp).p.rating, 0) / rated.length : 0;
+      if (rated.length) {
+        const sc = rated.reduce((s, e) => s + e.frac, 0) / rated.length;
+        row.tb.tpr = Math.round(row.tb.aro + HTM.ratingDiff(sc));
+      } else row.tb.tpr = 0;
+      const half = R * W / 2;
+      row.tb.koya = otb.reduce((s, e) => { const o = byId.get(e.opp); return s + (o && o.points >= half - EPS ? e.pts : 0); }, 0);
+    }
+    // order: points, then the tie-breaks one after the other (a tie-break splits only the players still tied)
+    const eq = (a, b) => Math.abs(a - b) < EPS;
+    const directEncounter = (group) => {
+      const ids = new Set(group.map((r) => r.p.id));
+      const val = new Map(group.map((r) => [r, 0]));
+      for (const r of group) {
+        const met = new Set();
+        for (const e of r.entries) {
+          if (e.opp !== null && ids.has(e.opp) && (e.kind === 'game' || e.kind === 'forfeitWin' || e.kind === 'forfeitLoss' || e.kind === 'doubleForfeit')) { val.set(r, val.get(r) + e.pts); met.add(e.opp); }
+        }
+        if (met.size < group.length - 1) return null;
+      }
+      return val;
+    };
+    const order = (group, k) => {
+      if (group.length < 2) return group;
+      if (k >= O.tiebreaks.length) return group.slice().sort((a, b) => a.no - b.no);
+      const id = O.tiebreaks[k];
+      let val;
+      if (id === 'de') {
+        val = directEncounter(group);
+        if (!val) return order(group, k + 1);
+        group.forEach((r) => { r.tbShow.de = val.get(r); });
+      } else val = new Map(group.map((r) => [r, r.tb[id] || 0]));
+      const sorted = group.slice().sort((a, b) => (val.get(b) - val.get(a)) || (a.no - b.no));
+      const out = [];
+      let i = 0;
+      while (i < sorted.length) {
+        let j = i + 1;
+        while (j < sorted.length && eq(val.get(sorted[j]), val.get(sorted[i]))) j++;
+        out.push(...order(sorted.slice(i, j), k + 1));
+        i = j;
+      }
+      return out;
+    };
+    const byPts = rows.slice().sort((a, b) => (b.points - a.points) || (a.no - b.no));
+    const final = [];
+    for (let i = 0; i < byPts.length;) {
+      let j = i + 1;
+      while (j < byPts.length && eq(byPts[j].points, byPts[i].points)) j++;
+      final.push(...order(byPts.slice(i, j), 0));
+      i = j;
+    }
+    final.forEach((r, i) => { r.rank = i + 1; });
+    for (let i = 0; i < final.length; i++) {                       // exactly tied: same points and the same value in every tie-break
+      const a = final[i], b = final[i + 1];
+      if (b && eq(a.points, b.points) && O.tiebreaks.every((id) => (id === 'de' ? true : eq(a.tb[id] || 0, b.tb[id] || 0)))) { a.tied = true; b.tied = true; }
+    }
+    return { rows: final, byId, upto: R, tbs: O.tiebreaks.slice() };
+  };
+
+  // Compact text for one round of one row: opponent number, colour and result ("12w1", "3b=", "bye", "+", ...)
+  HTM.cellText = function (T, row, e) {
+    const sym = e.out === 'W' ? '1' : e.out === 'D' ? '=' : '0';
+    switch (e.kind) {
+      case 'game': return (e.oppNo || '?') + (e.color === 'w' ? 'w' : 'b') + sym;
+      case 'pending': return (e.oppNo || '?') + (e.color === 'w' ? 'w' : 'b') + '?';
+      case 'forfeitWin': return (e.oppNo || '?') + (e.color === 'w' ? 'w' : 'b') + '+';
+      case 'forfeitLoss': return (e.oppNo || '?') + (e.color === 'w' ? 'w' : 'b') + '-';
+      case 'doubleForfeit': return (e.oppNo || '?') + '--';
+      case 'pab': return 'bye';
+      case 'full': return 'F';
+      case 'half': return 'H';
+      case 'zero': return 'Z';
+      case 'rest': return 'rest';
+      default: return '-';
+    }
+  };
+  HTM.annotate = function (T, st) {                                // fills e.oppNo so that cells can show opponent numbers
+    const no = new Map(T.players.map((p) => [p.id, p.no]));
+    for (const r of st.rows) for (const e of r.entries) e.oppNo = e.opp === null ? null : no.get(e.opp);
+    return st;
+  };
+
+  HTM.fmtPts = function (v) {                                      // 4.5 -> 4½, 0.5 -> ½
+    if (v === null || v === undefined || isNaN(v)) return '';
+    const whole = Math.floor(v + EPS), frac = v - whole;
+    if (Math.abs(frac - 0.5) < EPS) return (whole ? String(whole) : '') + '½';
+    if (Math.abs(frac) < EPS) return String(whole);
+    return (Math.round(v * 100) / 100).toString();
+  };
+  HTM.fmtTb = function (id, v) {
+    if (v === undefined || v === null) return '';
+    if (id === 'wins' || id === 'blackwins' || id === 'blackgames' || id === 'tpr' || id === 'rating') return v ? String(Math.round(v)) : (id === 'tpr' || id === 'rating' ? '' : '0');
+    if (id === 'aro') return v ? String(Math.round(v)) : '';
+    return HTM.fmtPts(v);
+  };
+  HTM.gamesOf = function (rd) { return rd ? rd.games : []; };
+  HTM.roundComplete = function (T, r) {
+    const rd = T.rounds[r - 1];
+    return !!rd && rd.games.every((g) => g.res);
+  };
+  HTM.lastPairedRound = (T) => T.rounds.length;
+  HTM.touch = (T) => { T.modified = new Date().toISOString(); return T; };
+
+  if (typeof module !== 'undefined' && module.exports) module.exports = HTM;
+})(typeof globalThis !== 'undefined' ? globalThis : this);
+</script>
+<script>
+/* Human Tournament Maker - Swiss pairings (Dutch system, following FIDE C.04.3 in structure; see README for the differences).
+   Score brackets from the top; in a bracket the upper half (S1) is paired with the lower half (S2) in the order of the transpositions;
+   no rematches, the bye goes to the lowest-ranked player who has not had one, colours follow the colour preferences. Pure logic, no DOM. */
+(function (root) {
+  'use strict';
+  const HTM = root.HTM = root.HTM || {};
+  const EPS = 1e-9;
+  const BUDGET = { budget: true };
+
+  // ---------------------------------------------------------------------------------------------- matching (Edmonds' blossom)
+  function maxMatching(adj) {
+    const n = adj.length;
+    const match = new Array(n).fill(-1), p = new Array(n).fill(-1), base = new Array(n), used = new Array(n), blossom = new Array(n);
+    let q = [];
+    function lca(a, b) {
+      const seen = new Array(n).fill(false);
+      for (;;) { a = base[a]; seen[a] = true; if (match[a] === -1) break; a = p[match[a]]; }
+      for (;;) { b = base[b]; if (seen[b]) return b; b = p[match[b]]; }
+    }
+    function markPath(v, b, children) {
+      while (base[v] !== b) {
+        blossom[base[v]] = blossom[base[match[v]]] = true;
+        p[v] = children; children = match[v]; v = p[match[v]];
+      }
+    }
+    function findPath(root0) {
+      used.fill(false); p.fill(-1);
+      for (let i = 0; i < n; i++) base[i] = i;
+      used[root0] = true; q = [root0];
+      for (let qh = 0; qh < q.length; qh++) {
+        const v = q[qh];
+        for (const to of adj[v]) {
+          if (base[v] === base[to] || match[v] === to) continue;
+          if (to === root0 || (match[to] !== -1 && p[match[to]] !== -1)) {
+            const cb = lca(v, to);
+            blossom.fill(false);
+            markPath(v, cb, to); markPath(to, cb, v);
+            for (let i = 0; i < n; i++) if (blossom[base[i]]) { base[i] = cb; if (!used[i]) { used[i] = true; q.push(i); } }
+          } else if (p[to] === -1) {
+            p[to] = v;
+            if (match[to] === -1) return to;
+            used[match[to]] = true; q.push(match[to]);
+          }
+        }
+      }
+      return -1;
+    }
+    for (let v = 0; v < n; v++) if (match[v] === -1) for (const to of adj[v]) if (match[to] === -1) { match[to] = v; match[v] = to; break; }
+    for (let i = 0; i < n; i++) {
+      if (match[i] !== -1) continue;
+      const v = findPath(i);
+      for (let cur = v; cur !== -1;) { const pv = p[cur], ppv = match[pv]; match[cur] = pv; match[pv] = cur; cur = ppv; }
+    }
+    return match;
+  }
+  HTM._maxMatching = maxMatching;
+
+  // can all players of the list be paired with each other (nobody left over)?
+  function canPairAll(list, compat) {
+    const n = list.length;
+    if (n === 0) return true;
+    if (n % 2) return false;
+    const used = new Array(n).fill(false);
+    let ok = true;
+    for (let i = 0; i < n && ok; i++) {
+      if (used[i]) continue;
+      let found = false;
+      for (let j = i + 1; j < n; j++) if (!used[j] && compat(list[i], list[j])) { used[i] = used[j] = true; found = true; break; }
+      if (!found) ok = false;
+    }
+    if (ok) return true;
+    const adj = list.map(() => []);
+    for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) if (compat(list[i], list[j])) { adj[i].push(j); adj[j].push(i); }
+    return maxMatching(adj).every((x) => x !== -1);
+  }
+  HTM._canPairAll = canPairAll;
+
+  // ---------------------------------------------------------------------------------------------- colours
+  function prefOf(cols) {            // cols: colours ('w' / 'b') of the games played so far; c = preferred colour, s = 2 absolute, 1 strong, 0 mild
+    const n = cols.length;
+    if (!n) return { c: null, s: 0 };
+    let cd = 0;
+    for (const c of cols) cd += c === 'w' ? 1 : -1;
+    const l1 = cols[n - 1], l2 = n > 1 ? cols[n - 2] : null;
+    if (cd >= 2 || (l1 === 'w' && l2 === 'w')) return { c: 'b', s: 2 };
+    if (cd <= -2 || (l1 === 'b' && l2 === 'b')) return { c: 'w', s: 2 };
+    if (cd === 1) return { c: 'b', s: 1 };
+    if (cd === -1) return { c: 'w', s: 1 };
+    return { c: l1 === 'w' ? 'b' : 'w', s: 0 };
+  }
+  HTM.colorPref = prefOf;
+
+  // ---------------------------------------------------------------------------------------------- the search
+  const zeroCost = () => [0, 0, 0, 0, 0, 0, 0, 0];
+  const addCost = (a, b) => { const c = new Array(8); for (let i = 0; i < 8; i++) c[i] = a[i] + b[i]; return c; };
+  const cmpCost = (a, b) => { for (let i = 0; i < 8; i++) if (a[i] !== b[i]) return a[i] < b[i] ? -1 : 1; return 0; };
+  const isZero = (c) => c.every((x) => x === 0);
+
+  // The best arrangement of one bracket: mdps = players moved down from the brackets above, res = the players of the score group,
+  // f = number of players that float down to the next bracket. Returns { pairs, floaters, cost } or null.
+  function bracketBest(ctx, mdps, res, f, feasibleFn) {
+    const M = mdps.length, R = res.length;
+    let best = null, zero = false, nodes = 0;
+    const stack = [];
+    const tick = () => { if (++ctx.nodes > ctx.maxNodes) throw BUDGET; return ++nodes > ctx.bracketNodes && best; };
+
+    function leaf(floaters, cost) {
+      if (best && cmpCost(cost, best.cost) >= 0) return;
+      if (!feasibleFn(floaters)) return;
+      best = { cost, pairs: stack.map((x) => x.slice()), floaters: floaters.slice() };
+      if (isZero(cost)) zero = true;
+    }
+
+    function dfsB(L, cost0) {                       // the players that are not paired with a moved-down player: upper half against lower half
+      const m = L.length;
+      if (m < f || ((m - f) & 1)) return;
+      const k = (m - f) / 2;
+      const used = new Array(m).fill(false);
+      const fl = [];
+      const go = (i, cost, floats, unused) => {
+        if (zero || tick()) return;
+        while (i < m && used[i]) i++;
+        if (i >= m) {
+          if (floats !== f) return;
+          leaf(fl, addCost(cost, ctx.floatCost(fl)));
+          return;
+        }
+        if (unused < f - floats) return;
+        const a = L[i];
+        const tryPartner = (j) => {
+          if (used[j]) return;
+          const b = L[j];
+          if (!ctx.compat(a, b)) return;
+          const c2 = addCost(cost, ctx.pairCost(a, b));
+          if (best && cmpCost(c2, best.cost) >= 0) return;
+          used[i] = used[j] = true; stack.push([a, b]);
+          go(i + 1, c2, floats, unused - 2);
+          stack.pop(); used[i] = used[j] = false;
+        };
+        if (i < k) {                                // S1 member: the S2 players in order, then the other S1 players (an exchange)
+          for (let j = Math.max(k, i + 1); j < m && !zero; j++) tryPartner(j);
+          for (let j = i + 1; j < k && !zero; j++) tryPartner(j);
+        } else for (let j = i + 1; j < m && !zero; j++) tryPartner(j);
+        if (!zero && floats < f) { used[i] = true; fl.push(a); go(i + 1, cost, floats + 1, unused - 1); fl.pop(); used[i] = false; }
+      };
+      go(0, cost0, 0, m);
+    }
+
+    if (M === 0) { dfsB(res, zeroCost()); return best; }
+    for (let m1 = Math.min(M, R); m1 >= 0 && !zero; m1--) {          // as many moved-down players as possible get a partner in the score group
+      const usedRes = new Array(R).fill(false);
+      const dfsA = (i, cost) => {
+        if (zero || tick()) return;
+        if (i === m1) { dfsB(mdps.slice(m1).concat(res.filter((_, j) => !usedRes[j])), cost); return; }
+        const a = mdps[i];
+        for (let j = 0; j < R && !zero; j++) {
+          if (usedRes[j]) continue;
+          const b = res[j];
+          if (!ctx.compat(a, b)) continue;
+          const c2 = addCost(cost, ctx.pairCost(a, b));
+          if (best && cmpCost(c2, best.cost) >= 0) continue;
+          usedRes[j] = true; stack.push([a, b]);
+          dfsA(i + 1, c2);
+          stack.pop(); usedRes[j] = false;
+        }
+      };
+      dfsA(0, zeroCost());
+      if (best) break;
+    }
+    return best;
+  }
+
+  function solveBrackets(ctx, groups) {
+    const n = groups.length;
+    const lower = new Array(n);
+    let acc = [];
+    for (let g = n - 1; g >= 0; g--) { lower[g] = acc; acc = groups[g].concat(acc); }
+    function rec(gi, mdps) {
+      if (gi === n) return mdps.length === 0 ? [] : null;
+      const res = groups[gi];
+      const total = mdps.length + res.length;
+      const last = gi === n - 1;
+      const memo = new Map();
+      const feasibleFn = (floaters) => {
+        if (last) return floaters.length === 0;
+        const key = floaters.map((h) => h.id).sort((a, b) => a - b).join(',');
+        if (!memo.has(key)) memo.set(key, canPairAll(floaters.concat(lower[gi]), ctx.compat));
+        return memo.get(key);
+      };
+      for (let f = last ? 0 : total % 2; f <= total; f += 2) {
+        if (last && f > 0) break;
+        const best = bracketBest(ctx, mdps, res, f, feasibleFn);
+        if (!best) continue;
+        const tail = rec(gi + 1, best.floaters);
+        if (tail) return best.pairs.concat(tail);
+      }
+      return null;
+    }
+    return rec(0, []);
+  }
+
+  function fallbackPairs(list, compat) {            // always valid when a pairing exists: take the nearest partner that keeps the rest pairable
+    const rest = list.slice(), out = [];
+    while (rest.length) {
+      const a = rest.shift();
+      let done = false;
+      for (let j = 0; j < rest.length && !done; j++) {
+        if (!compat(a, rest[j])) continue;
+        const rem = rest.filter((_, k) => k !== j);
+        if (canPairAll(rem, compat)) { out.push([a, rest[j]]); rest.splice(j, 1); done = true; }
+      }
+      if (!done) return null;
+    }
+    return out;
+  }
+
+  // ---------------------------------------------------------------------------------------------- the pairing of one round
+  // Returns { games: [{w, b, res: null}], byes: [{p, kind}], warnings: [], info } or { error }.
+  HTM.pairSwiss = function (T, roundNo, opts) {
+    opts = opts || {};
+    const O = T.opts, warnings = [];
+    const ent = HTM.playerEntries(T, roundNo - 1);
+    const before = new Map();
+    for (const [pid, es] of ent) { const a = []; let c = 0; for (const e of es) { a[e.r] = c; c += e.pts; } before.set(pid, a); }
+    const H = new Map();
+    for (const p of T.players) {
+      const es = ent.get(p.id);
+      const h = { p, id: p.id, no: p.no, pts: 0, opps: new Set(), cols: [], colByRound: [], floats: [], hadPab: false, hadForfeitWin: false };
+      for (const e of es) {
+        h.pts += e.pts;
+        if (e.opp !== null) h.opps.add(e.opp);
+        const played = e.color && (e.kind === 'game' || e.kind === 'pending');
+        if (played) h.cols.push(e.color);
+        h.colByRound[e.r] = played ? e.color : null;
+        if (e.kind === 'pab') h.hadPab = true;
+        if (e.kind === 'forfeitWin') h.hadForfeitWin = true;
+        let fl = '=';
+        if (e.kind === 'pab') fl = 'D';
+        else if (e.opp !== null && played) { const mine = before.get(p.id)[e.r], theirs = before.get(e.opp)[e.r]; fl = mine > theirs + EPS ? 'D' : mine < theirs - EPS ? 'U' : '='; }
+        h.floats[e.r] = fl;
+      }
+      H.set(p.id, h);
+    }
+    const act = [], byes = [];
+    for (const p of T.players) {
+      if (!HTM.isActive(p, roundNo)) continue;
+      const bk = p.byes && p.byes[roundNo];
+      if (bk) { byes.push({ p: p.id, kind: bk }); continue; }
+      act.push(H.get(p.id));
+    }
+    act.sort((a, b) => (b.pts - a.pts) || (a.no - b.no));
+    const rankIdx = new Map(act.map((h, i) => [h.id, i]));
+    if (act.length < 1) return { games: [], byes, warnings, info: {} };
+    const compat = opts.allowRepeats ? () => true : (a, b) => !a.opps.has(b.id);
+
+    // the bye for an odd number of players: lowest score, then the lowest-ranked player, never twice; the others must remain pairable
+    let pab = null;
+    if (act.length % 2 === 1) {
+      const cands = act.slice().sort((a, b) => (a.pts - b.pts) || (b.no - a.no));
+      const pick = (list) => { for (const c of list) if (canPairAll(act.filter((x) => x !== c), compat)) return c; return null; };
+      pab = pick(cands.filter((c) => !c.hadPab && !c.hadForfeitWin));
+      if (!pab) {
+        pab = pick(cands);
+        if (pab) warnings.push(pab.p.name + ' gets a second bye because no other pairing is possible.');
+      }
+      if (!pab) return { error: 'No pairing is possible without a rematch. Pair this round by hand, or allow repeated pairings.' };
+    }
+    const pool = act.filter((x) => x !== pab);
+    const groups = [];
+    for (const x of pool) { const g = groups[groups.length - 1]; if (g && Math.abs(g[0].pts - x.pts) < EPS) g.push(x); else groups.push([x]); }
+
+    const pref = new Map(act.map((h) => [h.id, prefOf(h.cols)]));
+    const floatRep = (c, h, kind) => {
+      if (h.floats[roundNo - 1] === kind) c[kind === 'D' ? 4 : 5]++;
+      if (h.floats[roundNo - 2] === kind) c[kind === 'D' ? 6 : 7]++;
+    };
+    const ctx = {
+      compat, nodes: 0, maxNodes: 4000000, bracketNodes: 60000,
+      pairCost(a, b) {
+        const c = zeroCost();
+        const pa = pref.get(a.id), pb = pref.get(b.id);
+        if (pa.c && pb.c && pa.c === pb.c) { if (pa.s === 2 && pb.s === 2) c[1] = 1; c[2] = 1; if (Math.min(pa.s, pb.s) >= 1) c[3] = 1; }
+        if (a.pts > b.pts + EPS) { floatRep(c, a, 'D'); floatRep(c, b, 'U'); }
+        else if (b.pts > a.pts + EPS) { floatRep(c, b, 'D'); floatRep(c, a, 'U'); }
+        return c;
+      },
+      floatCost(list) {
+        const c = zeroCost();
+        for (const h of list) { c[0] += Math.round(h.pts * 2); floatRep(c, h, 'D'); }
+        return c;
+      },
+    };
+    let pairs = null;
+    try { pairs = solveBrackets(ctx, groups); } catch (e) { if (e !== BUDGET) throw e; warnings.push('The search was cut short; the pairing is valid but may be less balanced.'); }
+    if (!pairs) pairs = fallbackPairs(pool, compat);
+    if (!pairs) return { error: 'No pairing is possible without a rematch. Pair this round by hand, or allow repeated pairings.' };
+
+    // colours
+    const cdOf = (h) => h.cols.reduce((s, c) => s + (c === 'w' ? 1 : -1), 0);
+    const assign = (a, b) => {                       // [white, black], or null when neither has a preference
+      const pa = pref.get(a.id), pb = pref.get(b.id);
+      if (!pa.c && !pb.c) return null;
+      if (pa.c && !pb.c) return pa.c === 'w' ? [a, b] : [b, a];
+      if (!pa.c && pb.c) return pb.c === 'w' ? [b, a] : [a, b];
+      if (pa.c !== pb.c) return pa.c === 'w' ? [a, b] : [b, a];
+      const c = pa.c;
+      let first = null;
+      if (pa.s !== pb.s) first = pa.s > pb.s ? a : b;
+      else if (pa.s === 2) { const da = Math.abs(cdOf(a)), db = Math.abs(cdOf(b)); if (da !== db) first = da > db ? a : b; }
+      if (!first) {
+        for (let r = roundNo - 1; r >= 1 && !first; r--) {
+          const ca = a.colByRound[r], cb = b.colByRound[r];
+          if (ca && cb && ca !== cb) first = ca === c ? b : a;
+        }
+      }
+      if (!first) first = rankIdx.get(a.id) < rankIdx.get(b.id) ? a : b;
+      const other = first === a ? b : a;
+      return c === 'w' ? [first, other] : [other, first];
+    };
+    const boards = pairs.map(([a, b]) => ({ a, b, key: [Math.max(a.pts, b.pts), a.pts + b.pts, -Math.min(rankIdx.get(a.id), rankIdx.get(b.id))] }));
+    boards.sort((x, y) => (y.key[0] - x.key[0]) || (y.key[1] - x.key[1]) || (y.key[2] - x.key[2]));
+    const first = O.firstColor === 'black' ? 'b' : 'w';
+    let k = 0;
+    const games = boards.map((bd) => {
+      let wb = assign(bd.a, bd.b);
+      if (!wb) {
+        const hi = rankIdx.get(bd.a.id) < rankIdx.get(bd.b.id) ? bd.a : bd.b, lo = hi === bd.a ? bd.b : bd.a;
+        const hiColour = k % 2 === 0 ? first : (first === 'w' ? 'b' : 'w');
+        wb = hiColour === 'w' ? [hi, lo] : [lo, hi];
+        k++;
+      }
+      return { w: wb[0].id, b: wb[1].id, res: null };
+    });
+    if (pab) byes.push({ p: pab.id, kind: 'pab' });
+    return { games, byes, warnings, info: { groups: groups.map((g) => g.length), nodes: ctx.nodes } };
+  };
+
+  HTM.nextRoundBlock = function (T) {                // why the next round cannot be paired yet, or null
+    const planned = HTM.plannedRounds(T);
+    if (T.format !== 'swiss') return 'This format is not paired round by round.';
+    if (T.players.length < 2) return 'Enter at least two players.';
+    if (T.rounds.length >= planned) return 'All ' + planned + ' rounds have been paired. Raise the number of rounds in the settings to continue.';
+    const last = T.rounds[T.rounds.length - 1];
+    if (last) {
+      const open = last.games.map((g, i) => (g.res ? 0 : i + 1)).filter(Boolean);
+      if (open.length) return 'Round ' + last.n + ' still has ' + open.length + ' game' + (open.length > 1 ? 's' : '') + ' without a result (board' + (open.length > 1 ? 's ' : ' ') + open.slice(0, 8).join(', ') + (open.length > 8 ? ', ...' : '') + ').';
+    }
+    return null;
+  };
+
+  HTM.applySwissRound = function (T, roundNo, result) {
+    T.rounds.push({ n: roundNo, games: result.games, byes: result.byes });
+    T.started = true;
+    return T;
+  };
+
+  if (typeof module !== 'undefined' && module.exports) module.exports = HTM;
+})(typeof globalThis !== 'undefined' ? globalThis : this);
+</script>
+<script>
+/* Human Tournament Maker - round robin (FIDE Berger tables) and knockout brackets. Pure logic, no DOM. */
+(function (root) {
+  'use strict';
+  const HTM = root.HTM = root.HTM || {};
+
+  // ---------------------------------------------------------------------------------------------- round robin
+  // The rounds of one cycle for players 1..n; a pair is [white, black]. With an odd n the dummy player n+1 stands for the round off.
+  HTM.bergerRounds = function (n) {
+    if (n < 2) return [];
+    const m = n % 2 ? n + 1 : n;
+    const rounds = [];
+    for (let r = 0; r < m - 1; r++) {
+      const p = ((r * (m / 2)) % (m - 1)) + 1;                  // the partner of the fixed player m
+      const pairs = [r % 2 === 0 ? [p, m] : [m, p]];
+      const L = [];                                              // the other players in cyclic order after p; the earlier of a pair has White
+      for (let t = 1; t <= m - 2; t++) L.push(((p - 1 + t) % (m - 1)) + 1);
+      for (let i = 0; i < L.length / 2; i++) pairs.push([L[i], L[L.length - 1 - i]]);
+      rounds.push(pairs);
+    }
+    return rounds;
+  };
+
+  HTM.createRoundRobin = function (T) {
+    const ps = HTM.playersByNo(T), n = ps.length;
+    if (n < 2) throw new Error('Enter at least two players.');
+    const base = HTM.bergerRounds(n);
+    T.rounds = [];
+    for (let c = 0; c < (T.opts.doubleRR ? 2 : 1); c++) {
+      for (const pairs of base) {
+        const games = [], byes = [];
+        for (const [a, b] of pairs) {
+          const w = c % 2 === 0 ? a : b, bl = c % 2 === 0 ? b : a;      // the second cycle has the colours reversed
+          if (w > n || bl > n) byes.push({ p: ps[(w > n ? bl : w) - 1].id, kind: 'rest' });
+          else games.push({ w: ps[w - 1].id, b: ps[bl - 1].id, res: null });
+        }
+        T.rounds.push({ n: T.rounds.length + 1, games, byes });
+      }
+    }
+    T.started = true;
+    return T;
+  };
+
+  // A player who leaves a round robin loses all games not yet played by forfeit.
+  HTM.rrWithdraw = function (T, pid) {
+    let n = 0;
+    for (const rd of T.rounds) for (const g of rd.games) {
+      if (g.res) continue;
+      if (g.w === pid) { g.res = '-+'; n++; } else if (g.b === pid) { g.res = '+-'; n++; }
+    }
+    return n;
+  };
+
+  // ---------------------------------------------------------------------------------------------- knockout
+  HTM.koSeedOrder = function (size) {                            // 8 -> 1 8 4 5 2 7 3 6 (adjacent seeds meet in round 1)
+    let a = [1];
+    while (a.length < size) { const s = a.length * 2, b = []; for (const x of a) b.push(x, s + 1 - x); a = b; }
+    return a;
+  };
+  HTM.koRoundName = function (size, r) {
+    const left = size / Math.pow(2, r);
+    return left === 2 ? 'Final' : left === 4 ? 'Semi-finals' : left === 8 ? 'Quarter-finals' : 'Round of ' + left;
+  };
+
+  HTM.createKnockout = function (T) {
+    const ps = HTM.playersByNo(T), n = ps.length;
+    if (n < 2) throw new Error('Enter at least two players.');
+    let size = 2;
+    while (size < n) size *= 2;
+    const G = Math.max(1, T.opts.koGames || 1);
+    const mk = (a, b) => ({ a, b, games: new Array(G).fill(null), tb: null, bye: false });
+    const order = HTM.koSeedOrder(size);
+    const first = [];
+    for (let i = 0; i < size; i += 2) {
+      const sa = order[i], sb = order[i + 1];
+      const m = mk(sa <= n ? ps[sa - 1].id : null, sb <= n ? ps[sb - 1].id : null);
+      m.sa = sa; m.sb = sb; m.bye = !m.a || !m.b;
+      first.push(m);
+    }
+    const rounds = [first];
+    for (let s = size / 2; s > 1; s /= 2) { const arr = []; for (let i = 0; i < s / 2; i++) arr.push(mk(null, null)); rounds.push(arr); }
+    T.ko = { size, rounds };
+    T.started = true;
+    HTM.koAdvance(T);
+    return T;
+  };
+
+  HTM.koScore = function (m) {                                   // scores in the match so far; game i: a has White when i is even
+    let a = 0, b = 0, done = 0;
+    m.games.forEach((res, i) => {
+      if (!res) return;
+      done++;
+      const aw = i % 2 === 0;
+      if (res === '1/2') { a += 0.5; b += 0.5; } else if (res === '1-0' || res === '+-') { if (aw) a++; else b++; } else if (res === '0-1' || res === '-+') { if (aw) b++; else a++; }
+    });
+    return { a, b, done, left: m.games.length - done };
+  };
+  HTM.koWinner = function (m) {                                  // 'a' | 'b' | null while undecided
+    if (m.bye) return m.a ? 'a' : m.b ? 'b' : null;
+    if (!m.a || !m.b) return null;
+    const s = HTM.koScore(m);
+    if (s.a > s.b + s.left) return 'a';
+    if (s.b > s.a + s.left) return 'b';
+    if (s.left === 0) return s.a > s.b ? 'a' : s.b > s.a ? 'b' : (m.tb === 'a' || m.tb === 'b' ? m.tb : null);
+    return null;
+  };
+  HTM.koWinnerId = function (m) { const w = HTM.koWinner(m); return w === 'a' ? m.a : w === 'b' ? m.b : null; };
+
+  HTM.koAdvance = function (T) {                                 // winners move to the next round; a changed slot clears that match
+    const rounds = T.ko.rounds;
+    for (let r = 1; r < rounds.length; r++) {
+      rounds[r].forEach((m, j) => {
+        const a = HTM.koWinnerId(rounds[r - 1][2 * j]), b = HTM.koWinnerId(rounds[r - 1][2 * j + 1]);
+        if (m.a !== a || m.b !== b) { m.a = a; m.b = b; m.games = new Array(m.games.length).fill(null); m.tb = null; }
+      });
+    }
+    return T;
+  };
+
+  HTM.koWithdraw = function (T, pid) {                           // the player loses the games not yet played in the open match by forfeit
+    for (const rd of T.ko.rounds) for (const m of rd) {
+      if ((m.a !== pid && m.b !== pid) || HTM.koWinner(m)) continue;
+      m.games = m.games.map((res, i) => res || (m.a === pid ? (i % 2 === 0 ? '-+' : '+-') : (i % 2 === 0 ? '+-' : '-+')));
+    }
+    HTM.koAdvance(T);
+  };
+
+  HTM.koStandings = function (T) {
+    const rounds = T.ko.rounds, last = rounds.length - 1;
+    const info = new Map(T.players.map((p) => [p.id, { p, lastRound: -1, out: false, champion: false, won: 0, lost: 0 }]));
+    rounds.forEach((rd, r) => rd.forEach((m) => {
+      for (const id of [m.a, m.b]) if (id && info.has(id)) info.get(id).lastRound = Math.max(info.get(id).lastRound, r);
+      const w = HTM.koWinner(m);
+      if (m.a && m.b && w) {
+        const win = info.get(w === 'a' ? m.a : m.b), lose = info.get(w === 'a' ? m.b : m.a);
+        win.won++; lose.lost++; lose.out = true;
+        if (r === last) win.champion = true;
+      }
+    }));
+    const all = Array.from(info.values());
+    const better = (x, y) => (x.champion ? 3 : x.out ? 1 : 2) - (y.champion ? 3 : y.out ? 1 : 2) || x.lastRound - y.lastRound;
+    all.sort((x, y) => -better(x, y) || x.p.no - y.p.no);
+    const out = [];
+    for (let i = 0; i < all.length;) {
+      let j = i + 1;
+      while (j < all.length && !better(all[i], all[j]) && all[i].out === all[j].out && all[i].champion === all[j].champion) j++;
+      const grp = all.slice(i, j), alive = !grp[0].out && !grp[0].champion;
+      for (const x of grp) out.push({ p: x.p, rank: i + 1, label: alive ? '' : (grp.length > 1 ? (i + 1) + '-' + (i + grp.length) : String(i + 1)), champion: x.champion, out: x.out, alive, lastRound: x.lastRound, won: x.won, lost: x.lost });
+      i = j;
+    }
+    return out;
+  };
+
+  if (typeof module !== 'undefined' && module.exports) module.exports = HTM;
+})(typeof globalThis !== 'undefined' ? globalThis : this);
+</script>
+<script>
+/* Human Tournament Maker - files: JSON (tournament file), CSV, validation of loaded data, crosstable. Pure logic, no DOM. */
+(function (root) {
+  'use strict';
+  const HTM = root.HTM = root.HTM || {};
+  const RES = new Set(HTM.RESULTS);
+
+  HTM.exportJSON = function (T) { return JSON.stringify({ app: 'Human Tournament Maker', version: HTM.VERSION, tournament: T }, null, 1); };
+
+  // Checks and repairs a tournament that comes from a file or from the browser storage. Throws an Error with a plain message when it cannot be used.
+  HTM.validate = function (T) {
+    if (!T || typeof T !== 'object' || !Array.isArray(T.players) || !HTM.FORMATS[T.format]) throw new Error('This is not a Human Tournament Maker file.');
+    const fmt = T.format;
+    T.id = typeof T.id === 'string' && T.id ? T.id : HTM.uid('t');
+    for (const k of ['name', 'city', 'organizer', 'arbiter', 'startDate', 'endDate', 'timeControl', 'notes']) T[k] = typeof T[k] === 'string' ? T[k] : '';
+    if (!T.name) T.name = 'Tournament';
+    T.created = T.created || new Date().toISOString();
+    T.modified = T.modified || T.created;
+    T.opts = Object.assign(HTM.defaultOpts(fmt), T.opts && typeof T.opts === 'object' ? T.opts : {});
+    if (!Array.isArray(T.opts.tiebreaks)) T.opts.tiebreaks = HTM.defaultOpts(fmt).tiebreaks;
+    T.opts.tiebreaks = T.opts.tiebreaks.filter((id) => HTM.TB[id]);
+    const seen = new Set();
+    let maxId = 0;
+    T.players = T.players.filter((p) => p && typeof p === 'object').map((p, i) => {
+      let id = Number.isInteger(p.id) && p.id > 0 && !seen.has(p.id) ? p.id : 0;
+      if (!id) { id = 1 + T.players.reduce((m, q) => Math.max(m, Number.isInteger(q && q.id) ? q.id : 0), 0) + i + 1000; while (seen.has(id)) id++; }
+      seen.add(id); maxId = Math.max(maxId, id);
+      return {
+        id, no: Number.isInteger(p.no) && p.no > 0 ? p.no : i + 1, name: String(p.name || ''), title: HTM.TITLES.includes(p.title) ? p.title : '',
+        rating: HTM.isNum(+p.rating) && +p.rating > 0 ? Math.round(+p.rating) : 0, fed: String(p.fed || ''), club: String(p.club || ''),
+        withdrawn: Number.isInteger(p.withdrawn) ? p.withdrawn : null, byes: p.byes && typeof p.byes === 'object' ? p.byes : {},
+      };
+    });
+    T.nextPlayerId = Math.max(Number.isInteger(T.nextPlayerId) ? T.nextPlayerId : 1, maxId + 1);
+    HTM.renumber(T);
+    const ids = new Set(T.players.map((p) => p.id));
+    T.rounds = (Array.isArray(T.rounds) ? T.rounds : []).map((rd, i) => ({
+      n: i + 1,
+      games: (rd && Array.isArray(rd.games) ? rd.games : []).filter((g) => g && ids.has(g.w) && ids.has(g.b) && g.w !== g.b).map((g) => ({ w: g.w, b: g.b, res: RES.has(g.res) ? g.res : null })),
+      byes: (rd && Array.isArray(rd.byes) ? rd.byes : []).filter((b) => b && ids.has(b.p) && HTM.BYE_LABEL[b.kind]).map((b) => ({ p: b.p, kind: b.kind })),
+    }));
+    if (fmt === 'knockout' && T.ko && Array.isArray(T.ko.rounds)) {
+      T.ko.rounds = T.ko.rounds.map((rd) => (Array.isArray(rd) ? rd : []).map((m) => ({
+        a: ids.has(m.a) ? m.a : null, b: ids.has(m.b) ? m.b : null, sa: m.sa, sb: m.sb, bye: !!m.bye, tb: m.tb === 'a' || m.tb === 'b' ? m.tb : null,
+        games: (Array.isArray(m.games) ? m.games : []).map((r) => (RES.has(r) ? r : null)),
+      })));
+    } else T.ko = null;
+    T.started = !!(T.started || T.rounds.length || T.ko);
+    return T;
+  };
+
+  HTM.importJSON = function (text) {
+    let o;
+    try { o = JSON.parse(text); } catch (e) { throw new Error('This is not a tournament file (it is not valid JSON).'); }
+    return HTM.validate(o && o.tournament ? o.tournament : o);
+  };
+
+  HTM.csv = function (rows) {
+    const q = (c) => { const s = c === null || c === undefined ? '' : String(c); return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+    return rows.map((r) => r.map(q).join(',')).join('\r\n') + '\r\n';
+  };
+
+  HTM.standingsRows = function (T, st) {
+    HTM.annotate(T, st);
+    const head = ['Rank', 'No', 'Title', 'Name', 'Rating', 'Fed', 'Club', 'Points'].concat(st.tbs.map((id) => HTM.TB[id].short));
+    if (T.format === 'swiss') for (let r = 1; r <= st.upto; r++) head.push('R' + r);
+    const rows = [head];
+    for (const r of st.rows) {
+      const row = [r.rank, r.p.no, r.p.title, r.p.name, r.p.rating || '', r.p.fed, r.p.club, HTM.fmtPts(r.points)];
+      for (const id of st.tbs) row.push(HTM.fmtTb(id, id === 'de' ? r.tbShow.de : r.tb[id]));
+      if (T.format === 'swiss') for (const e of r.entries) row.push(HTM.cellText(T, r, e));
+      rows.push(row);
+    }
+    return rows;
+  };
+
+  // Round robin cross table: cells[i][j] = what the i-th player of the ranking scored against the j-th ("1", "0", "½", "+", "-"; two cycles give two symbols)
+  HTM.crosstable = function (T, st) {
+    const idx = new Map(st.rows.map((r, i) => [r.p.id, i]));
+    const cells = st.rows.map(() => st.rows.map(() => []));
+    for (const [i, r] of st.rows.entries()) {
+      for (const e of r.entries) {
+        if (e.opp === null || !idx.has(e.opp)) continue;
+        const sym = e.kind === 'pending' ? '' : e.kind === 'forfeitWin' ? '+' : e.kind === 'forfeitLoss' || e.kind === 'doubleForfeit' ? '-' : e.out === 'W' ? '1' : e.out === 'D' ? '½' : '0';
+        cells[i][idx.get(e.opp)].push({ sym, color: e.color, r: e.r });
+      }
+    }
+    return { rows: st.rows, cells };
+  };
+
+  if (typeof module !== 'undefined' && module.exports) module.exports = HTM;
+})(typeof globalThis !== 'undefined' ? globalThis : this);
+</script>
+<script>
+/* Human Tournament Maker - small UI toolkit: DOM helper, toast, modal, storage, downloads. */
+(function () {
+  'use strict';
+  const UI = window.UI = {};
+
+  function h(tag, attrs, ...kids) {
+    const el = document.createElement(tag);
+    let value;
+    for (const [k, v] of Object.entries(attrs || {})) {
+      if (v === null || v === undefined || v === false) continue;
+      if (k === 'class') el.className = v;
+      else if (k === 'style' && typeof v === 'object') Object.assign(el.style, v);
+      else if (k.startsWith('on') && typeof v === 'function') el.addEventListener(k.slice(2), v);
+      else if (k === 'value') value = v;
+      else if (k === 'checked' || k === 'selected' || k === 'disabled' || k === 'readOnly') el[k] = !!v;
+      else el.setAttribute(k, v === true ? '' : v);
+    }
+    for (const c of kids.flat(Infinity)) {
+      if (c === null || c === undefined || c === false) continue;
+      el.append(c.nodeType ? c : document.createTextNode(String(c)));
+    }
+    if (value !== undefined) el.value = value;
+    return el;
+  }
+  UI.h = h;
+  UI.$ = (s, r) => (r || document).querySelector(s);
+  UI.$$ = (s, r) => Array.from((r || document).querySelectorAll(s));
+  UI.clear = (el) => { while (el.firstChild) el.removeChild(el.firstChild); return el; };
+  UI.debounce = (fn, ms) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; };
+
+  // ---------------------------------------------------------------------------------------------- storage (the browser may refuse it: never throw)
+  UI.store = {
+    get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+    set(k, v) { try { localStorage.setItem(k, v); return true; } catch (e) { return false; } },
+    del(k) { try { localStorage.removeItem(k); } catch (e) { /* ignore */ } },
+  };
+
+  // ---------------------------------------------------------------------------------------------- toast and modal
+  UI.toast = function (msg, kind) {
+    const el = h('div', { class: 'toast' + (kind === 'err' ? ' err' : '') }, msg);
+    UI.$('#toast-root').appendChild(el);
+    setTimeout(() => el.remove(), kind === 'err' ? 7000 : 3200);
+  };
+
+  UI.modal = function (o) {
+    const root = UI.$('#modal-root');
+    const back = h('div', { class: 'modal-back' });
+    const close = () => { back.remove(); document.removeEventListener('keydown', onKey, true); if (o.onClose) o.onClose(); };
+    const onKey = (e) => {
+      if (!back.isConnected) { document.removeEventListener('keydown', onKey, true); return; }
+      if (back !== root.lastElementChild) return;                      // only the top-most dialog reacts
+      if (e.key === 'Escape') { e.stopPropagation(); close(); }
+      else if (e.key === 'Enter' && o.submit && !(e.target && e.target.tagName === 'TEXTAREA') && !(e.target && e.target.tagName === 'BUTTON')) { e.preventDefault(); o.submit(api); }
+    };
+    const api = { close, el: back };
+    const foot = h('footer', {}, (o.buttons || []).map((b) => h('button', { class: 'btn' + (b.primary ? ' primary' : ''), onclick: () => { if (b.onClick) { if (b.onClick(api) === false) return; } if (b.close !== false) close(); } }, b.label)));
+    const win = h('div', { class: 'modal', style: { width: o.width || 'min(720px, 100%)' } }, h('header', {}, o.title || ''), h('div', { class: 'body' }, o.body), foot);
+    back.appendChild(win);
+    root.appendChild(back);
+    document.addEventListener('keydown', onKey, true);
+    const first = UI.$('input, select, textarea', win);
+    if (first && !o.noFocus) first.focus();
+    return api;
+  };
+
+  UI.confirm = function (text, okLabel, danger) {
+    return new Promise((resolve) => {
+      let done = false;
+      const fin = (v) => { if (!done) { done = true; resolve(v); } };
+      UI.modal({ title: danger ? 'Please confirm' : 'Confirm', width: 'min(460px, 100%)', body: h('div', {}, [].concat(text).map((t) => h('p', { style: { margin: '0 0 6px' } }, t))), buttons: [{ label: 'Cancel', onClick: () => fin(false) }, { label: okLabel || 'OK', primary: true, onClick: () => fin(true) }], onClose: () => fin(false), submit: (m) => { fin(true); m.close(); } });
+    });
+  };
+
+  // ---------------------------------------------------------------------------------------------- files
+  UI.download = function (name, text, mime) {
+    const blob = new Blob([text], { type: mime || 'text/plain' });
+    const a = h('a', { href: URL.createObjectURL(blob), download: name });
+    document.body.appendChild(a); a.click();
+    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+  };
+  UI.readFile = (file) => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result)); r.onerror = () => rej(new Error('The file could not be read.')); r.readAsText(file); });
+  UI.slug = (s) => (s || 'tournament').toLowerCase().replace(/[^a-z0-9֐-׿]+/gi, '-').replace(/^-+|-+$/g, '').slice(0, 40) || 'tournament';
+  UI.copy = async function (text) {
+    try { await navigator.clipboard.writeText(text); return true; } catch (e) {
+      const ta = h('textarea', { style: { position: 'fixed', left: '-1000px' } }); ta.value = text; document.body.appendChild(ta); ta.select();
+      let ok = false; try { ok = document.execCommand('copy'); } catch (e2) { /* ignore */ } ta.remove(); return ok;
+    }
+  };
+  UI.fmtTime = (d) => d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  UI.fmtDate = (iso) => { try { return new Date(iso).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }); } catch (e) { return iso || ''; } };
+})();
+</script>
+<script>
+/* Human Tournament Maker - dialogs: new tournament, paste a player list, byes, withdrawal, manual pairings, player card, knockout match. */
+(function () {
+  'use strict';
+  const { h, clear, toast, modal } = UI;
+  const D = window.Dialogs = {};
+  const S = () => window.App.S;
+
+  const field = (label, ...ctl) => h('div', { class: 'field' }, h('label', {}, label), h('div', { class: 'inline' }, ...ctl));
+  const nameOf = (p) => (p ? (p.title ? p.title + ' ' : '') + (p.name || '(no name)') : '?');
+  D.nameOf = nameOf;
+  const labelOf = (p) => p.no + '. ' + nameOf(p) + (p.rating ? ' (' + p.rating + ')' : '');
+
+  // ---------------------------------------------------------------------------------------------- new tournament
+  D.newTournament = function () {
+    const name = h('input', { class: 'input', placeholder: 'e.g. Club championship', 'data-f': 'name' });
+    const fmt = h('select', { class: 'select auto', onchange: sync }, Object.entries(HTM.FORMATS).map(([k, v]) => h('option', { value: k }, v)));
+    const rounds = h('input', { class: 'input num', type: 'number', min: 1, max: 30, value: 5 });
+    const dbl = h('input', { type: 'checkbox' });
+    const kog = h('select', { class: 'select auto' }, [1, 2, 3, 4, 5].map((n) => h('option', { value: n, selected: n === 2 }, n + (n === 1 ? ' game' : ' games'))));
+    const tc = h('input', { class: 'input', placeholder: 'e.g. 15 minutes + 10 seconds per move' });
+    const city = h('input', { class: 'input' });
+    const date = h('input', { class: 'input auto', type: 'date' });
+    const arb = h('input', { class: 'input' });
+    const rRounds = field('Rounds', rounds, h('span', { class: 'help' }, 'usually 5 to 9'));
+    const rDouble = field('Round robin', h('label', { class: 'check' }, dbl, 'two games between every pair (double round robin)'));
+    const rKo = field('Games per match', kog, h('span', { class: 'help' }, 'a tied match is decided by a tie-break winner'));
+    function sync() { rRounds.classList.toggle('hidden', fmt.value !== 'swiss'); rDouble.classList.toggle('hidden', fmt.value !== 'roundrobin'); rKo.classList.toggle('hidden', fmt.value !== 'knockout'); }
+    sync();
+    const body = h('div', {}, field('Name', name), field('Format', fmt), rRounds, rDouble, rKo, h('div', { class: 'hr' }), field('Time control', tc), field('City / venue', city), field('Date', date), field('Arbiter', arb));
+    modal({
+      title: 'New tournament', width: 'min(620px, 100%)', body,
+      buttons: [{ label: 'Cancel' }, { label: 'Create', primary: true, onClick: () => create() }],
+      submit: (m) => { if (create() !== false) m.close(); },
+    });
+    function create() {
+      const T = HTM.newTournament({ name: name.value.trim() || 'New tournament', format: fmt.value, timeControl: tc.value.trim(), city: city.value.trim(), startDate: date.value, arbiter: arb.value.trim() });
+      if (fmt.value === 'swiss') T.opts.rounds = Math.max(1, Math.min(30, parseInt(rounds.value, 10) || 5));
+      if (fmt.value === 'roundrobin') T.opts.doubleRR = dbl.checked;
+      if (fmt.value === 'knockout') T.opts.koGames = parseInt(kog.value, 10) || 2;
+      App.addTournament(T);
+    }
+  };
+
+  // ---------------------------------------------------------------------------------------------- paste a list of players
+  D.parsePlayers = function (text) {
+    const out = [];
+    for (const line of String(text).split(/\r?\n/)) {
+      const s = line.trim();
+      if (!s) continue;
+      let parts;
+      if (/[\t;]/.test(s)) parts = s.split(/\t|;/).map((x) => x.trim()).filter((x) => x !== '');
+      else {
+        const m = s.match(/^(.*?\S)[,\s]+(\d{3,4})$/);                       // "Name 1850" or "Name, 1850"
+        parts = m ? [m[1].replace(/,\s*$/, ''), m[2]] : [s];
+      }
+      const p = { name: '', rating: 0, title: '', fed: '', club: '' };
+      const rest = [];
+      for (const x of parts) {
+        if (/^\d{3,4}$/.test(x) && !p.rating) p.rating = +x;
+        else if (HTM.TITLES.includes(x.toUpperCase()) && x && !p.title && rest.length) p.title = x.toUpperCase();
+        else if (/^[A-Z]{3}$/.test(x) && !p.fed && rest.length) p.fed = x;
+        else rest.push(x);
+      }
+      const first = (rest[0] || '').match(/^(GM|IM|FM|CM|WGM|WIM|WFM|WCM)\s+(.+)$/i);       // "GM Name"
+      if (first && !p.title) { p.title = first[1].toUpperCase(); rest[0] = first[2]; }
+      p.name = rest.shift() || '';
+      p.club = rest.join(' ');
+      if (p.name) out.push(p);
+    }
+    return out;
+  };
+
+  D.pasteList = function () {
+    const ta = h('textarea', { class: 'input', rows: 12, placeholder: 'Dana Katz; 1850\nOmer Levi; 1720; FM; ISR; Haifa chess club\nGM Alex Smith 2510' });
+    const info = h('div', { class: 'help' }, 'Nothing recognised yet.');
+    const upd = () => { const n = D.parsePlayers(ta.value).length; info.textContent = n ? n + ' player' + (n > 1 ? 's' : '') + ' recognised.' : 'Nothing recognised yet.'; };
+    ta.addEventListener('input', upd);
+    const body = h('div', {}, h('p', { style: { margin: '0 0 6px' } }, 'One player per line. Fields (any order, separated by a semicolon or a tab): name, rating, title, federation (3 capital letters), club. "Name 1850" also works.'), ta, info);
+    modal({
+      title: 'Paste a list of players', width: 'min(640px, 100%)', body,
+      buttons: [{ label: 'Cancel' }, { label: 'Add players', primary: true, onClick: () => {
+        const list = D.parsePlayers(ta.value);
+        if (!list.length) { toast('Nothing to add.', 'err'); return false; }
+        App.addPlayers(list);
+      } }],
+    });
+  };
+
+  // ---------------------------------------------------------------------------------------------- late entry (Swiss, after round 1)
+  D.latePlayer = function (fields) {
+    const T = S().T;
+    const sel = h('select', { class: 'select auto' }, h('option', { value: 'zero' }, '0 points (zero-point bye)'), h('option', { value: 'half' }, '½ point (half-point bye)'));
+    modal({
+      title: 'Late entry', width: 'min(520px, 100%)', noFocus: true,
+      body: h('div', {}, h('p', { style: { margin: '0 0 8px' } }, nameOf(fields) + ' joins after ' + T.rounds.length + ' round' + (T.rounds.length > 1 ? 's' : '') + '. For each round already paired the player gets:'), sel),
+      buttons: [{ label: 'Cancel' }, { label: 'Add player', primary: true, onClick: () => App.addLatePlayer(fields, sel.value) }],
+    });
+  };
+
+  // ---------------------------------------------------------------------------------------------- requested byes
+  D.byes = function (pid) {
+    const T = S().T, p = T.players.find((x) => x.id === pid);
+    const planned = Math.max(HTM.plannedRounds(T), T.rounds.length);
+    const sels = [];
+    const rows = [];
+    for (let r = T.rounds.length + 1; r <= planned; r++) {
+      const sel = h('select', { class: 'select auto' }, [['', 'plays'], ['half', 'half-point bye'], ['zero', 'zero-point bye'], ['full', 'full-point bye']].map(([v, l]) => h('option', { value: v, selected: (p.byes[r] || '') === v }, l)));
+      sels.push([r, sel]);
+      rows.push(field('Round ' + r, sel));
+    }
+    if (!rows.length) { toast('All rounds are already paired.', 'err'); return; }
+    modal({
+      title: 'Byes of ' + nameOf(p), width: 'min(460px, 100%)', noFocus: true,
+      body: h('div', {}, h('p', { class: 'help', style: { margin: '0 0 6px' } }, 'A player with a bye is not paired in that round and gets the points set in the rules (' + HTM.fmtPts(T.opts.halfBye) + ' / ' + HTM.fmtPts(T.opts.zeroBye) + ' / ' + HTM.fmtPts(T.opts.fullBye) + ').'), rows),
+      buttons: [{ label: 'Cancel' }, { label: 'Save', primary: true, onClick: () => App.mutate((t) => { const q = t.players.find((x) => x.id === pid); q.byes = {}; for (const [r, sel] of sels) if (sel.value) q.byes[r] = sel.value; }) }],
+    });
+  };
+
+  // ---------------------------------------------------------------------------------------------- withdrawal
+  D.withdraw = function (pid) {
+    const T = S().T, p = T.players.find((x) => x.id === pid);
+    if (T.format === 'knockout') {
+      App.confirm(['Withdraw ' + nameOf(p) + '?', 'The open match is lost by forfeit, so the opponent moves on.'], 'Withdraw').then((yes) => { if (yes) App.mutate((t) => { t.players.find((x) => x.id === pid).withdrawn = 1; HTM.koWithdraw(t, pid); }); });
+      return;
+    }
+    if (T.format === 'roundrobin') {
+      App.confirm(['Withdraw ' + nameOf(p) + '?', 'All games that have no result yet are lost by forfeit. Games already played keep their result.'], 'Withdraw').then((yes) => { if (yes) App.mutate((t) => { t.players.find((x) => x.id === pid).withdrawn = 1; HTM.rrWithdraw(t, pid); }); });
+      return;
+    }
+    const num = h('input', { class: 'input num', type: 'number', min: 1, max: 60, value: T.rounds.length + 1 });
+    modal({
+      title: 'Withdraw ' + nameOf(p), width: 'min(500px, 100%)',
+      body: h('div', {}, field('First round not played', num), h('p', { class: 'help' }, 'The player is not paired from that round on. Points and games already played stay in the standings.')),
+      buttons: [{ label: 'Cancel' }, { label: 'Withdraw', primary: true, onClick: () => { const n = Math.max(1, parseInt(num.value, 10) || 1); App.mutate((t) => { t.players.find((x) => x.id === pid).withdrawn = n; }); } }],
+      submit: (m) => { const n = Math.max(1, parseInt(num.value, 10) || 1); App.mutate((t) => { t.players.find((x) => x.id === pid).withdrawn = n; }); m.close(); },
+    });
+  };
+
+  // ---------------------------------------------------------------------------------------------- manual pairings of a Swiss round
+  D.editRound = function (r) {
+    const T = S().T, rd = T.rounds[r - 1];
+    const ps = HTM.playersByNo(T);
+    const boards = rd.games.map((g) => ({ w: g.w, b: g.b, res: g.res, ow: g.w, ob: g.b }));           // ow / ob: the pair the result belongs to
+    const byes = rd.byes.map((b) => ({ p: b.p, kind: b.kind }));
+    const body = h('div', {});
+    const playerSel = (val, on) => h('select', { class: 'select', onchange: (e) => on(parseInt(e.target.value, 10) || 0) }, [h('option', { value: 0 }, '- none -')].concat(ps.map((p) => h('option', { value: p.id, selected: p.id === val }, labelOf(p)))));
+    function draw() {
+      clear(body);
+      body.append(h('p', { class: 'help', style: { margin: '0 0 6px' } }, 'Choose the players of every board. A result is kept when the board keeps both players and their colours.'));
+      const tb = h('table', { class: 'tbl full' }, h('thead', {}, h('tr', {}, h('th', {}, 'Bd'), h('th', {}, 'White'), h('th', {}, 'Black'), h('th', {}, ''))));
+      const tbody = h('tbody', {});
+      boards.forEach((b, i) => tbody.append(h('tr', {}, h('td', { class: 'c' }, i + 1), h('td', { class: 'in' }, playerSel(b.w, (v) => { b.w = v; })), h('td', { class: 'in' }, playerSel(b.b, (v) => { b.b = v; })),
+        h('td', { class: 'c' }, h('button', { class: 'btn sm ghost', title: 'Swap colours', onclick: () => {
+          const same = b.w === b.ow && b.b === b.ob, t = b.w;
+          b.w = b.b; b.b = t;
+          if (same) { b.ow = b.w; b.ob = b.b; b.res = { '1-0': '0-1', '0-1': '1-0', '+-': '-+', '-+': '+-' }[b.res] || b.res; }
+          draw();
+        } }, '⇄'), h('button', { class: 'btn sm ghost', title: 'Remove board', onclick: () => { boards.splice(i, 1); draw(); } }, '✕')))));
+      tb.append(tbody);
+      body.append(tb, h('div', { class: 'toolbar', style: { marginTop: '6px' } }, h('button', { class: 'btn sm', onclick: () => { boards.push({ w: 0, b: 0, res: null }); draw(); } }, 'Add board')));
+      body.append(h('div', { class: 'hr' }), h('b', {}, 'Byes'));
+      const bt = h('table', { class: 'tbl full', style: { marginTop: '4px' } });
+      byes.forEach((b, i) => bt.append(h('tr', {}, h('td', { class: 'in' }, playerSel(b.p, (v) => { b.p = v; })),
+        h('td', { class: 'in' }, h('select', { class: 'select', onchange: (e) => { b.kind = e.target.value; } }, Object.entries(HTM.BYE_LABEL).map(([k, v]) => h('option', { value: k, selected: b.kind === k }, v)))),
+        h('td', { class: 'c' }, h('button', { class: 'btn sm ghost', onclick: () => { byes.splice(i, 1); draw(); } }, '✕')))));
+      body.append(bt, h('div', { class: 'toolbar', style: { marginTop: '6px' } }, h('button', { class: 'btn sm', onclick: () => { byes.push({ p: 0, kind: 'pab' }); draw(); } }, 'Add bye')));
+    }
+    draw();
+    modal({
+      title: 'Pairings of round ' + r, width: 'min(760px, 100%)', body, noFocus: true,
+      buttons: [{ label: 'Cancel' }, { label: 'Save pairings', primary: true, onClick: (m) => save(m) }],
+    });
+    function save(m) {
+      const used = new Map();
+      const bad = [];
+      for (const b of boards) { if (!b.w || !b.b) { bad.push('A board has no player.'); break; } if (b.w === b.b) { bad.push('A player cannot play himself or herself.'); break; } }
+      for (const b of byes) if (!b.p) { bad.push('A bye has no player.'); break; }
+      for (const id of [].concat(...boards.map((b) => [b.w, b.b]), byes.map((b) => b.p))) used.set(id, (used.get(id) || 0) + 1);
+      for (const [id, n] of used) if (n > 1) { bad.push(nameOf(T.players.find((p) => p.id === id)) + ' appears more than once.'); break; }
+      if (bad.length) { toast(bad[0], 'err'); return false; }
+      const missing = ps.filter((p) => HTM.isActive(p, r) && !used.has(p.id));
+      const hist = HTM.playerEntries(T, r - 1);
+      const rematch = boards.filter((b) => (hist.get(b.w) || []).some((e) => e.opp === b.b));
+      const go = () => App.mutate((t) => {
+        t.rounds[r - 1].games = boards.map((b) => ({ w: b.w, b: b.b, res: b.w === b.ow && b.b === b.ob ? b.res : null }));
+        t.rounds[r - 1].byes = byes.map((b) => ({ p: b.p, kind: b.kind }));
+      });
+      if (missing.length || rematch.length) {
+        const lines = [];
+        if (missing.length) lines.push(missing.length + ' active player' + (missing.length > 1 ? 's are' : ' is') + ' not paired and will score 0: ' + missing.slice(0, 5).map(nameOf).join(', ') + (missing.length > 5 ? ', ...' : '') + '.');
+        if (rematch.length) lines.push(rematch.length + ' board' + (rematch.length > 1 ? 's repeat' : ' repeats') + ' an earlier pairing.');
+        App.confirm(lines.concat('Save anyway?'), 'Save anyway').then((yes) => { if (yes) { go(); m.close(); } });
+        return false;                                                  // keep the dialog open until the question is answered
+      }
+      go();
+    }
+  };
+
+  // ---------------------------------------------------------------------------------------------- player card
+  D.playerCard = function (pid, upto) {
+    const T = S().T;
+    const st = HTM.annotate(T, HTM.standings(T, upto));
+    const row = st.byId.get(pid);
+    if (!row) return;
+    const byId = new Map(T.players.map((p) => [p.id, p]));
+    const sym = (e) => (e.kind === 'pending' ? '?' : e.out === 'W' ? '1' : e.out === 'D' ? '½' : '0');
+    const kindText = { game: '', forfeitWin: 'win by forfeit', forfeitLoss: 'loss by forfeit', doubleForfeit: 'both forfeit', pending: 'no result yet', pab: 'bye', half: 'half-point bye', zero: 'zero-point bye', full: 'full-point bye', rest: 'round off', absent: 'not paired' };
+    const tb = h('table', { class: 'tbl' }, h('thead', {}, h('tr', {}, ['Rd', 'Opponent', 'Rtg', 'Col', 'Result', 'Pts', ''].map((x) => h('th', {}, x)))));
+    const tbody = h('tbody', {});
+    for (const e of row.entries) {
+      const o = e.opp ? byId.get(e.opp) : null;
+      tbody.append(h('tr', {}, h('td', { class: 'c' }, e.r), h('td', { dir: 'auto' }, o ? o.no + '. ' + nameOf(o) : '-'), h('td', { class: 'r' }, o && o.rating ? o.rating : ''), h('td', { class: 'c' }, e.color === 'w' ? 'White' : e.color === 'b' ? 'Black' : ''),
+        h('td', { class: 'c' }, e.kind === 'game' || e.kind === 'pending' || e.kind === 'forfeitWin' || e.kind === 'forfeitLoss' ? sym(e) : ''), h('td', { class: 'r' }, HTM.fmtPts(e.pts)), h('td', { class: 'tag' }, kindText[e.kind] || '')));
+    }
+    tb.append(tbody);
+    const kv = h('dl', { class: 'kv', style: { margin: '0 0 8px' } },
+      h('dt', {}, 'Rank'), h('dd', {}, row.rank + ' of ' + st.rows.length), h('dt', {}, 'Points'), h('dd', {}, HTM.fmtPts(row.points) + ' from ' + st.upto + ' round' + (st.upto === 1 ? '' : 's')),
+      row.tb.tpr ? [h('dt', {}, 'Performance'), h('dd', {}, row.tb.tpr)] : null,
+      row.p.rating ? [h('dt', {}, 'Rating'), h('dd', {}, row.p.rating)] : null,
+      row.p.club || row.p.fed ? [h('dt', {}, 'Club'), h('dd', {}, [row.p.club, row.p.fed].filter(Boolean).join(', '))] : null);
+    modal({ title: '#' + row.p.no + '  ' + nameOf(row.p), width: 'min(640px, 100%)', body: h('div', { dir: 'auto' }, kv, tb), buttons: [{ label: 'Close', primary: true }], noFocus: true });
+  };
+
+  // ---------------------------------------------------------------------------------------------- knockout match
+  D.match = function (r, j) {
+    const T = S().T, m = T.ko.rounds[r][j];
+    const byId = new Map(T.players.map((p) => [p.id, p]));
+    const pa = byId.get(m.a), pb = byId.get(m.b);
+    if (!pa || !pb || m.bye) { toast('This match does not have two players yet.', 'err'); return; }
+    const games = m.games.slice();
+    let tb = m.tb;
+    const body = h('div', {});
+    const sum = h('p', { style: { margin: '8px 0 0', fontWeight: 600 } });
+    const tbSel = h('select', { class: 'select auto', onchange: (e) => { tb = e.target.value || null; refresh(); } }, h('option', { value: '' }, '- none -'), h('option', { value: 'a', selected: tb === 'a' }, nameOf(pa)), h('option', { value: 'b', selected: tb === 'b' }, nameOf(pb)));
+    function refresh() {
+      const tmp = { a: m.a, b: m.b, games, tb, bye: false };
+      const s = HTM.koScore(tmp), w = HTM.koWinner(tmp);
+      sum.textContent = nameOf(pa) + '  ' + HTM.fmtPts(s.a) + ' : ' + HTM.fmtPts(s.b) + '  ' + nameOf(pb) + (w ? '   → ' + nameOf(w === 'a' ? pa : pb) + ' moves on' : (s.left === 0 ? '   → tied: pick the tie-break winner' : ''));
+      tbRow.classList.toggle('hidden', !(s.left === 0 && s.a === s.b));
+    }
+    const tbRow = field('Tie-break winner', tbSel, h('span', { class: 'help' }, 'e.g. after a blitz or Armageddon game'));
+    games.forEach((res, i) => {
+      const aw = i % 2 === 0;
+      const sel = h('select', { class: 'select auto', onchange: (e) => { games[i] = e.target.value || null; refresh(); } }, [''].concat(HTM.RESULTS).map((v) => h('option', { value: v, selected: (res || '') === v }, v ? HTM.RESULT_LABEL[v] : '-')));
+      body.append(field('Game ' + (i + 1), h('span', { style: { minWidth: '260px' }, dir: 'auto' }, nameOf(aw ? pa : pb) + ' (White) vs ' + nameOf(aw ? pb : pa)), sel));
+    });
+    body.append(tbRow, sum);
+    refresh();
+    modal({
+      title: HTM.koRoundName(T.ko.size, r) + ' - match ' + (j + 1), width: 'min(720px, 100%)', body, noFocus: true,
+      buttons: [{ label: 'Cancel' }, { label: 'Save', primary: true, onClick: () => App.mutate((t) => { const mm = t.ko.rounds[r][j]; mm.games = games.slice(); mm.tb = tb; HTM.koAdvance(t); }) }],
+    });
+  };
+})();
+</script>
+<script>
+/* Human Tournament Maker - the screens: tournaments list, players, pairings and results, bracket, standings, cross table, settings. */
+(function () {
+  'use strict';
+  const { h, clear, toast } = UI;
+  const V = window.Views = {};
+  const S = () => window.App.S;
+  const nameOf = (p) => Dialogs.nameOf(p);
+  const P = (t, id) => t.players.find((x) => x.id === id);
+  const field = (label, ...ctl) => h('div', { class: 'field' }, h('label', {}, label), h('div', { class: 'inline' }, ...ctl));
+  const fmtDay = (d) => { try { return d ? new Date(d + 'T00:00:00').toLocaleDateString([], { dateStyle: 'medium' }) : ''; } catch (e) { return d; } };
+
+  function empty(title, text, ...actions) {
+    return h('div', { class: 'card', style: { maxWidth: '760px', margin: '24px auto' } }, h('div', { class: 'empty' }, h('b', {}, title), text,
+      actions.length ? h('div', { class: 'row', style: { justifyContent: 'center', marginTop: '12px' } }, actions) : null));
+  }
+  function printHeader(T, subtitle) {
+    return h('div', { class: 'print-only' }, h('h1', { dir: 'auto' }, T.name), h('p', {}, [T.city, fmtDay(T.startDate) + (T.endDate && T.endDate !== T.startDate ? ' - ' + fmtDay(T.endDate) : ''), T.timeControl].filter((x) => x && x.trim()).join('   |   ')),
+      T.arbiter ? h('p', {}, 'Arbiter: ' + T.arbiter) : null, h('p', { style: { fontWeight: 600 } }, subtitle));
+  }
+  function who(T, p, withRating) {
+    const o = T.opts;
+    return h('span', { dir: 'auto' }, (o.showTitle && p.title ? p.title + ' ' : '') + (p.name || '(no name)'));
+  }
+  const symOf = (e) => (e.out === 'W' ? '1' : e.out === 'D' ? '½' : '0');
+
+  // ---------------------------------------------------------------------------------------------- tournaments list
+  V.home = function () {
+    const idx = S().index.slice().sort((a, b) => (b.modified || '').localeCompare(a.modified || ''));
+    const wrap = h('div', { style: { maxWidth: '1000px', margin: '0 auto' } });
+    wrap.append(h('div', { class: 'toolbar' }, h('button', { class: 'btn primary lg', onclick: () => Dialogs.newTournament() }, 'New tournament'), h('button', { class: 'btn lg', onclick: () => App.openFile() }, 'Open file...'), h('button', { class: 'btn lg', onclick: () => App.demo() }, 'Try a demo')));
+    if (!idx.length) {
+      wrap.append(h('div', { class: 'card' }, h('div', { class: 'empty' }, h('b', {}, 'No tournaments yet'),
+        'Run a chess tournament between people: enter the players, let the program pair every round, type the results and print the pairings and standings. Swiss system, round robin and knockout are included. Everything stays on this computer.')));
+      return wrap;
+    }
+    const tb = h('table', { class: 'tbl full click' }, h('thead', {}, h('tr', {}, ['Tournament', 'Format', 'Players', 'Rounds', 'Last change', ''].map((x) => h('th', {}, x)))));
+    const body = h('tbody', {});
+    for (const e of idx) {
+      const rounds = e.format === 'knockout' ? '' : e.rounds + ' of ' + e.planned;
+      body.append(h('tr', { onclick: () => App.openTournament(e.id) }, h('td', { dir: 'auto' }, e.name), h('td', {}, HTM.FORMATS[e.format] || e.format), h('td', { class: 'r' }, e.players), h('td', { class: 'c' }, rounds), h('td', {}, UI.fmtDate(e.modified)),
+        h('td', { class: 'c nowrap', onclick: (ev) => ev.stopPropagation() },
+          h('button', { class: 'btn sm', onclick: () => App.openTournament(e.id) }, 'Open'), ' ',
+          h('button', { class: 'btn sm', onclick: () => App.exportFile(e.id) }, 'Save file'), ' ',
+          h('button', { class: 'btn sm', onclick: () => App.duplicate(e.id) }, 'Duplicate'), ' ',
+          h('button', { class: 'btn sm', onclick: () => App.remove(e.id) }, 'Delete'))));
+    }
+    tb.append(body);
+    wrap.append(h('div', { class: 'card' }, tb), h('p', { class: 'help' }, 'Tournaments are saved in this browser after every change. Use "Save file" to keep a copy or to move a tournament to another computer.'));
+    return wrap;
+  };
+
+  // ---------------------------------------------------------------------------------------------- players
+  V.players = function () {
+    const T = S().T, started = T.started;
+    const wrap = h('div', {});
+    const canAdd = !(started && T.format !== 'swiss');
+    const nm = h('input', { class: 'input', id: 'add-name', dir: 'auto', placeholder: 'Name', style: { minWidth: '190px', width: '240px' } });
+    const ti = h('select', { class: 'select auto', title: 'Title' }, HTM.TITLES.map((t) => h('option', { value: t }, t || '-')));
+    const rt = h('input', { class: 'input num', placeholder: 'Rating', inputmode: 'numeric' });
+    const fd = h('input', { class: 'input', placeholder: 'Fed', style: { width: '58px' }, maxlength: 3 });
+    const cl = h('input', { class: 'input', placeholder: 'Club', style: { width: '160px' } });
+    const add = () => {
+      if (!nm.value.trim()) { toast('Enter a name.', 'err'); nm.focus(); return; }
+      const f = { name: nm.value.trim(), title: ti.value, rating: parseInt(rt.value, 10) || 0, fed: fd.value.trim().toUpperCase(), club: cl.value.trim() };
+      S().focusSel = '#add-name';
+      if (started && T.format === 'swiss') Dialogs.latePlayer(f); else App.addPlayers([f]);
+    };
+    for (const el of [nm, rt, fd, cl]) el.addEventListener('keydown', (e) => { if (e.key === 'Enter') add(); });
+    const tools = h('div', { class: 'toolbar' }, nm, ti, rt, fd, cl, h('button', { class: 'btn primary', disabled: !canAdd, onclick: add }, started && T.format === 'swiss' ? 'Add late entry' : 'Add player'),
+      h('button', { class: 'btn', disabled: !canAdd, onclick: () => Dialogs.pasteList() }, 'Paste a list...'),
+      h('span', { class: 'spacer' }),
+      h('button', { class: 'btn', disabled: started, title: 'Number the players by rating (strongest first)', onclick: () => App.mutate((t) => HTM.sortByRating(t)) }, 'Sort by rating'));
+    wrap.append(tools);
+    if (started && T.format !== 'swiss') wrap.append(h('div', { class: 'msg' }, 'The ' + (T.format === 'knockout' ? 'bracket' : 'schedule') + ' has been created, so players can no longer be added or removed. Withdraw a player instead, or delete the ' + (T.format === 'knockout' ? 'bracket' : 'schedule') + ' in the settings to start over.'));
+    if (!T.players.length) { wrap.append(h('div', { class: 'card' }, h('div', { class: 'empty' }, h('b', {}, 'No players yet'), 'Type a name and press Enter, or paste a whole list. The number in the first column is the starting rank: the strongest player gets number 1.'))); return wrap; }
+
+    const tb = h('table', { class: 'tbl' }, h('thead', {}, h('tr', {}, ['No', 'Title', 'Name', 'Rating', 'Fed', 'Club', 'Status', ''].map((x) => h('th', {}, x)))));
+    const body = h('tbody', {});
+    const ps = HTM.playersByNo(T);
+    const set = (id, key, conv) => (e) => App.mutate((t) => { P(t, id)[key] = conv ? conv(e.target.value) : e.target.value.trim(); }, { quiet: true });
+    ps.forEach((p, i) => {
+      const status = [];
+      if (p.withdrawn !== null && p.withdrawn !== undefined) status.push(T.format === 'swiss' ? 'withdrawn from round ' + p.withdrawn : 'withdrawn');
+      const byeTxt = Object.keys(p.byes || {}).sort((a, b) => a - b).map((r) => 'R' + r + ' ' + (p.byes[r] === 'half' ? '½' : p.byes[r] === 'zero' ? '0' : '1')).join(', ');
+      if (byeTxt) status.push('bye ' + byeTxt);
+      const acts = [];
+      if (!started) {
+        acts.push(h('button', { class: 'btn sm ghost', title: 'Move up', disabled: i === 0, onclick: () => App.mutate((t) => { const a = P(t, p.id), b = P(t, ps[i - 1].id); const x = a.no; a.no = b.no; b.no = x; HTM.renumber(t); }) }, '▲'));
+        acts.push(h('button', { class: 'btn sm ghost', title: 'Move down', disabled: i === ps.length - 1, onclick: () => App.mutate((t) => { const a = P(t, p.id), b = P(t, ps[i + 1].id); const x = a.no; a.no = b.no; b.no = x; HTM.renumber(t); }) }, '▼'));
+        acts.push(h('button', { class: 'btn sm ghost', title: 'Remove', onclick: () => App.mutate((t) => HTM.removePlayer(t, p.id)) }, '✕'));
+      } else {
+        if (T.format === 'swiss') acts.push(h('button', { class: 'btn sm', onclick: () => Dialogs.byes(p.id) }, 'Byes...'));
+        if (p.withdrawn !== null && p.withdrawn !== undefined) { if (T.format === 'swiss') acts.push(h('button', { class: 'btn sm', onclick: () => App.mutate((t) => { P(t, p.id).withdrawn = null; }) }, 'Re-enter')); }
+        else acts.push(h('button', { class: 'btn sm', onclick: () => Dialogs.withdraw(p.id) }, 'Withdraw'));
+      }
+      const off = p.withdrawn !== null && p.withdrawn !== undefined;
+      body.append(h('tr', { class: off ? 'off' : '' },
+        h('td', { class: 'r' }, p.no),
+        h('td', { class: 'in' }, h('select', { class: 'cell', style: { width: '62px' }, onchange: set(p.id, 'title') }, HTM.TITLES.map((t) => h('option', { value: t, selected: p.title === t }, t)))),
+        h('td', { class: 'in name' }, h('input', { class: 'cell', dir: 'auto', value: p.name, onchange: set(p.id, 'name') })),
+        h('td', { class: 'in' }, h('input', { class: 'cell r', style: { width: '64px', textAlign: 'right' }, value: p.rating || '', inputmode: 'numeric', onchange: set(p.id, 'rating', (v) => parseInt(v, 10) || 0) })),
+        h('td', { class: 'in' }, h('input', { class: 'cell', style: { width: '52px' }, maxlength: 3, value: p.fed, onchange: set(p.id, 'fed', (v) => v.trim().toUpperCase()) })),
+        h('td', { class: 'in' }, h('input', { class: 'cell', style: { width: '160px' }, dir: 'auto', value: p.club, onchange: set(p.id, 'club') })),
+        h('td', { class: 'tag' }, status.join('; ')),
+        h('td', { class: 'nowrap' }, acts)));
+    });
+    tb.append(body);
+    wrap.append(h('div', { class: 'card', style: { display: 'inline-block', maxWidth: '100%', overflow: 'auto' } }, tb));
+    const active = ps.filter((p) => p.withdrawn === null || p.withdrawn === undefined).length;
+    wrap.append(h('p', { class: 'help' }, ps.length + ' players' + (active !== ps.length ? ' (' + active + ' still playing)' : '') + '. Click a cell to change it.' + (!started && T.format === 'swiss' ? ' Recommended number of rounds for ' + ps.length + ' players: ' + Math.max(3, Math.ceil(Math.log2(Math.max(2, ps.length)))) + ' to ' + Math.max(4, Math.ceil(Math.log2(Math.max(2, ps.length))) + 2) + '.' : '')));
+    return wrap;
+  };
+
+  // ---------------------------------------------------------------------------------------------- pairings and results
+  function startPrompt(T, what, go) {                       // offers to sort by rating before the first pairing
+    const sorted = T.players.every((p, i, a) => i === 0 || a[i - 1].rating >= p.rating);
+    if (sorted || T.started) { go(); return; }
+    UI.modal({
+      title: 'Starting ranks', width: 'min(520px, 100%)', noFocus: true,
+      body: h('p', {}, 'The players are not numbered by rating. The starting ranks decide who plays whom ' + what + '. Sort the players by rating first?'),
+      buttons: [{ label: 'Cancel' }, { label: 'Keep my order', onClick: () => go() }, { label: 'Sort by rating', primary: true, onClick: () => { App.mutate((t) => HTM.sortByRating(t)); go(); } }],
+    });
+  }
+
+  V.pairings = function () {
+    const T = S().T;
+    if (T.format === 'knockout') return V.bracket();
+    if (T.players.length < 2) return empty('Enter at least two players first', 'The pairings are made from the player list.', h('button', { class: 'btn primary', onclick: () => App.go('players') }, 'Go to the players'));
+    if (T.format === 'roundrobin' && !T.started) {
+      const n = T.players.length, rounds = HTM.plannedRounds(T);
+      return empty('Ready to create the schedule', n + ' players: ' + rounds + ' round' + (rounds > 1 ? 's' : '') + (T.opts.doubleRR ? ' (two games between every pair)' : '') + '. The pairings follow the FIDE Berger tables, so the starting ranks matter; after the schedule is created the player list is locked.',
+        h('button', { class: 'btn primary lg', onclick: () => startPrompt(T, 'in the schedule', () => App.mutate((t) => HTM.createRoundRobin(t))) }, 'Create the schedule'));
+    }
+    const planned = Math.max(HTM.plannedRounds(T), T.rounds.length);
+    let r = Math.max(1, Math.min(S().round || 1, Math.max(planned, 1)));
+    if (T.format === 'swiss' && r > T.rounds.length + 1) r = T.rounds.length + 1;
+    S().round = r;
+    const wrap = h('div', {});
+    const chips = h('div', { class: 'toolbar' }, h('b', {}, 'Round'));
+    for (let i = 1; i <= planned; i++) {
+      const done = i <= T.rounds.length && HTM.roundComplete(T, i);
+      chips.append(h('span', { class: 'chip' + (i === r ? ' on' : '') + (done ? ' done' : '') + (i > T.rounds.length ? ' off' : ''), title: i > T.rounds.length ? 'not paired yet' : done ? 'all results entered' : 'results missing', onclick: () => { S().round = i; App.render(); } }, i + (done ? ' ✓' : '')));
+    }
+    wrap.append(chips);
+    const rd = T.rounds[r - 1];
+    if (!rd) {                                                       // Swiss: the next round is not paired yet
+      const block = HTM.nextRoundBlock(T);
+      wrap.append(h('div', { class: 'card' }, h('div', { class: 'empty' }, h('b', {}, 'Round ' + r + ' is not paired yet'), block ? block : 'All results are in. The pairings follow the Dutch system: players with the same score meet, nobody plays the same opponent twice, colours alternate, and the bye goes to the lowest-ranked player.',
+        h('div', { class: 'row', style: { justifyContent: 'center', marginTop: '12px' } }, h('button', { class: 'btn primary lg', disabled: !!block, onclick: () => V.pairNext() }, 'Pair round ' + r)))));
+      return wrap;
+    }
+    // summary and tools
+    const sum = h('span', { class: 'muted' });
+    const tools = h('div', { class: 'toolbar' }, sum, h('span', { class: 'spacer' }));
+    const isLast = r === T.rounds.length;
+    if (T.format === 'swiss') {
+      const block = HTM.nextRoundBlock(T);
+      tools.append(h('button', { class: 'btn', disabled: !isLast, title: 'Change the players of the boards', onclick: () => Dialogs.editRound(r) }, 'Edit pairings...'),
+        h('button', { class: 'btn', disabled: !isLast, onclick: () => V.deleteRound() }, 'Delete round ' + r),
+        h('button', { class: 'btn primary', disabled: !!block || !isLast, title: block || '', onclick: () => V.pairNext() }, 'Pair round ' + (r + 1)));
+    }
+    tools.append(h('button', { class: 'btn', onclick: () => window.print() }, 'Print'));
+    wrap.append(tools, printHeader(T, 'Round ' + r + (T.format === 'swiss' ? ' of ' + planned : '') + ' - pairings'));
+    wrap.append(boardTable(T, r, rd, sum));
+    if (rd.byes.length) {
+      wrap.append(h('div', { class: 'card', style: { marginTop: '10px', display: 'inline-block' } }, h('b', {}, T.format === 'roundrobin' ? 'Round off: ' : 'Byes: '), rd.byes.map((b, i) => h('span', {}, i ? '; ' : '', h('span', { dir: 'auto' }, nameOf(P(T, b.p))), ' (' + HTM.BYE_LABEL[b.kind].toLowerCase() + (b.kind === 'rest' ? '' : ', ' + HTM.fmtPts(HTM.byePoints(T.opts, b.kind)) + ' point' + (HTM.byePoints(T.opts, b.kind) > 1 ? 's' : '')) + ')'))));
+    }
+    const out = T.players.filter((p) => !HTM.isActive(p, r) && !rd.byes.some((b) => b.p === p.id));
+    if (out.length) wrap.append(h('p', { class: 'help' }, 'Not playing this round (withdrawn): ' + out.map(nameOf).join(', ')));
+    return wrap;
+  };
+
+  function boardTable(T, r, rd, sumEl) {
+    const byNo = new Map(T.players.map((p) => [p.id, p]));
+    const o = T.opts;
+    const opts = [''].concat(HTM.RESULTS);
+    const head = ['Bd', 'No', 'White'].concat(o.showRating ? ['Rtg'] : [], ['Result', 'Black'], o.showRating ? ['Rtg'] : [], ['No']);
+    const tb = h('table', { class: 'tbl board-tbl' }, h('thead', {}, h('tr', {}, head.map((x) => h('th', {}, x)))));
+    const body = h('tbody', {});
+    const rows = [];
+    function summary() {
+      const have = rd.games.filter((g) => g.res).length;
+      sumEl.textContent = rd.games.length + ' board' + (rd.games.length === 1 ? '' : 's') + ', ' + have + ' result' + (have === 1 ? '' : 's') + ' entered' + (have === rd.games.length ? ' - round complete' : ', ' + (rd.games.length - have) + ' missing');
+    }
+    function paint(i) { rows[i].classList.toggle('pend', !rd.games[i].res); }
+    function setRes(i, val, move) {
+      const wasComplete = HTM.roundComplete(T, r);
+      App.mutate((t) => { t.rounds[r - 1].games[i].res = val || null; }, { quiet: true });
+      const nowComplete = rd.games.every((g) => g.res);
+      rows[i].querySelector('select').value = val || '';
+      paint(i); summary();
+      if (wasComplete !== nowComplete) {                                   // the buttons that depend on a finished round change: draw the screen again, keep the place
+        S().focusSel = '.board-tbl tr[data-i="' + (move && rows[i + 1] ? i + 1 : i) + '"]';
+        App.render();
+        return;
+      }
+      if (move && rows[i + 1]) rows[i + 1].focus();
+      App.refreshTabs();
+    }
+    rd.games.forEach((g, i) => {
+      const w = byNo.get(g.w), b = byNo.get(g.b);
+      const sel = h('select', { class: 'cell', onchange: (e) => setRes(i, e.target.value, false) }, opts.map((v) => h('option', { value: v, selected: (g.res || '') === v }, v ? HTM.RESULT_LABEL[v] : '')));
+      const tr = h('tr', { tabindex: 0, 'data-i': i },
+        h('td', { class: 'c' }, i + 1), h('td', { class: 'r' }, w.no), h('td', { class: 'pl' }, who(T, w)), o.showRating ? h('td', { class: 'r' }, w.rating || '') : null,
+        h('td', { class: 'res in' }, sel), h('td', { class: 'pl' }, who(T, b)), o.showRating ? h('td', { class: 'r' }, b.rating || '') : null, h('td', { class: 'r' }, b.no));
+      rows.push(tr); body.append(tr); paint(i);
+    });
+    tb.append(body);
+    summary();
+    body.addEventListener('keydown', (e) => {                       // keyboard entry on a focused row: 1 = White wins, 0 = Black wins, = / 5 = draw, Delete = clear, arrows move
+      const tr = e.target.closest ? e.target.closest('tr') : null;
+      if (!tr || e.target.tagName === 'SELECT' || e.ctrlKey || e.metaKey || e.altKey) return;
+      const i = parseInt(tr.getAttribute('data-i'), 10);
+      const k = e.key;
+      const map = { '1': '1-0', '0': '0-1', '=': '1/2', '5': '1/2', d: '1/2', D: '1/2', '+': '+-', '-': '-+' };
+      if (map[k]) { e.preventDefault(); setRes(i, map[k], true); }
+      else if (k === 'Delete' || k === 'Backspace') { e.preventDefault(); setRes(i, '', false); }
+      else if (k === 'ArrowDown' && rows[i + 1]) { e.preventDefault(); rows[i + 1].focus(); }
+      else if (k === 'ArrowUp' && rows[i - 1]) { e.preventDefault(); rows[i - 1].focus(); }
+    });
+    const quick = h('input', { class: 'input', style: { width: '230px' }, placeholder: 'Quick entry: board result, e.g. 3 1', title: '1 = White wins, 0 = Black wins, = or 5 = draw' });
+    quick.addEventListener('keydown', (e) => {
+      if (e.key !== 'Enter') return;
+      const m = quick.value.trim().match(/^(\d+)\s*([10=5dD+-])$/);
+      if (!m || +m[1] < 1 || +m[1] > rd.games.length) { toast('Type a board number and a result: 3 1 (White wins), 3 0 (Black wins), 3 = (draw).', 'err'); return; }
+      setRes(+m[1] - 1, { '1': '1-0', '0': '0-1', '=': '1/2', '5': '1/2', d: '1/2', D: '1/2', '+': '+-', '-': '-+' }[m[2]], false);
+      quick.value = '';
+    });
+    return h('div', {}, h('div', { class: 'toolbar noprint' }, quick, h('span', { class: 'help' }, '1 = White wins, 0 = Black wins, = draw. You can also click a row and press 1, 0 or =.')), h('div', { class: 'card', style: { display: 'inline-block', maxWidth: '100%', overflow: 'auto' } }, tb));
+  }
+
+  V.pairNext = function () {
+    const T = S().T;
+    const block = HTM.nextRoundBlock(T);
+    if (block) { toast(block, 'err'); return; }
+    const go = () => {
+      const r = T.rounds.length + 1;
+      let res = HTM.pairSwiss(T, r);
+      const apply = (x) => { App.mutate((t) => HTM.applySwissRound(t, r, x)); S().round = r; App.render(); (x.warnings || []).forEach((w) => toast(w)); };
+      if (res.error) {
+        App.confirm([res.error, 'Pair this round anyway and allow players to meet again?'], 'Allow repeats').then((yes) => { if (yes) { res = HTM.pairSwiss(T, r, { allowRepeats: true }); if (res.error) toast(res.error, 'err'); else apply(res); } });
+        return;
+      }
+      apply(res);
+    };
+    startPrompt(T, 'in round 1', go);
+  };
+  V.deleteRound = function () {
+    const T = S().T, r = T.rounds.length;
+    const have = T.rounds[r - 1].games.filter((g) => g.res).length;
+    App.confirm(['Delete the pairings of round ' + r + '?', have ? have + ' result' + (have > 1 ? 's' : '') + ' entered in this round will be lost.' : 'No results have been entered in this round.', 'You can undo this with the Undo button.'], 'Delete round ' + r, true).then((yes) => {
+      if (yes) { App.mutate((t) => { t.rounds.pop(); if (!t.rounds.length) t.started = false; }); S().round = Math.max(1, r); App.render(); }
+    });
+  };
+
+  // ---------------------------------------------------------------------------------------------- knockout bracket
+  V.bracket = function () {
+    const T = S().T;
+    if (T.players.length < 2) return empty('Enter at least two players first', 'The bracket is made from the player list.', h('button', { class: 'btn primary', onclick: () => App.go('players') }, 'Go to the players'));
+    if (!T.ko) {
+      let size = 2; while (size < T.players.length) size *= 2;
+      return empty('Ready to create the bracket', T.players.length + ' players: ' + HTM.plannedRounds(T) + ' rounds' + (size > T.players.length ? ', the top ' + (size - T.players.length) + ' seed' + (size - T.players.length > 1 ? 's' : '') + ' get a bye in the first round' : '') + '. Seed 1 meets the lowest seed, so the starting ranks matter; after the bracket is created the player list is locked.',
+        h('button', { class: 'btn primary lg', onclick: () => startPrompt(T, 'in the bracket', () => App.mutate((t) => HTM.createKnockout(t))) }, 'Create the bracket'));
+    }
+    const byNo = new Map(T.players.map((p) => [p.id, p]));
+    const wrap = h('div', {});
+    wrap.append(h('div', { class: 'toolbar' }, h('span', { class: 'muted' }, 'Click a match to enter its games. ' + T.opts.koGames + (T.opts.koGames === 1 ? ' game' : ' games') + ' per match.'), h('span', { class: 'spacer' }), h('button', { class: 'btn', onclick: () => window.print() }, 'Print')), printHeader(T, 'Knockout bracket'));
+    const br = h('div', { class: 'bracket' });
+    T.ko.rounds.forEach((rd, r) => {
+      const col = h('div', { class: 'rnd' }, h('h4', {}, HTM.koRoundName(T.ko.size, r)));
+      rd.forEach((m, j) => {
+        const w = HTM.koWinner(m), s = HTM.koScore(m);
+        const line = (id, side, seed) => { const p = id ? byNo.get(id) : null; return h('div', { class: w === side ? 'win' : '' }, h('span', { class: 'seed' }, seed || ''), h('span', { class: 'nm', dir: 'auto' }, p ? nameOf(p) : (m.bye && !id ? 'bye' : '')), h('span', {}, p && s.done ? HTM.fmtPts(side === 'a' ? s.a : s.b) : '')); };
+        const gm = m.games.some(Boolean) ? m.games.map((g) => (g ? HTM.RESULT_LABEL[g] : '-')).join(', ') + (m.tb ? '  (tie-break: ' + nameOf(byNo.get(m.tb === 'a' ? m.a : m.b)) + ')' : '') : '';
+        const card = h('div', { class: 'match', onclick: () => { if (m.a && m.b && !m.bye) Dialogs.match(r, j); }, title: m.a && m.b && !m.bye ? 'Enter the games' : '' }, line(m.a, 'a', m.sa), line(m.b, 'b', m.sb), gm ? h('div', { class: 'gm' }, gm) : null);
+        col.append(card);
+      });
+      br.append(col);
+    });
+    wrap.append(br);
+    const st = HTM.koStandings(T);
+    const champ = st.find((x) => x.champion);
+    if (champ) wrap.append(h('div', { class: 'card', style: { marginTop: '10px', display: 'inline-block' } }, h('b', {}, 'Winner: '), h('span', { dir: 'auto' }, nameOf(champ.p))));
+    return wrap;
+  };
+
+  // ---------------------------------------------------------------------------------------------- standings
+  V.standings = function () {
+    const T = S().T;
+    if (T.format === 'knockout') return koStandings(T);
+    if (!T.rounds.length) return empty('No standings yet', 'The standings appear as soon as the first round is paired.', h('button', { class: 'btn primary', onclick: () => App.go('pairings') }, 'Go to the pairings'));
+    const last = T.rounds.length;
+    let upto = S().stRound && S().stRound <= last ? S().stRound : last;
+    const st = HTM.annotate(T, HTM.standings(T, upto));
+    const o = T.opts;
+    const wrap = h('div', {});
+    const sel = h('select', { class: 'select auto', onchange: (e) => { S().stRound = parseInt(e.target.value, 10); App.render(); } }, Array.from({ length: last }, (_, i) => i + 1).map((r) => h('option', { value: r, selected: r === upto }, 'After round ' + r)));
+    wrap.append(h('div', { class: 'toolbar' }, h('b', {}, 'Standings'), sel, h('span', { class: 'spacer' }),
+      h('button', { class: 'btn', onclick: () => UI.download(UI.slug(T.name) + '-standings.csv', '﻿' + HTM.csv(HTM.standingsRows(T, st)), 'text/csv') }, 'Save as CSV'),
+      h('button', { class: 'btn', onclick: async () => { const ok = await UI.copy(HTM.standingsRows(T, st).map((r) => r.join('\t')).join('\n')); toast(ok ? 'Copied: paste it into a spreadsheet.' : 'Copying failed.', ok ? '' : 'err'); } }, 'Copy'),
+      h('button', { class: 'btn', onclick: () => window.print() }, 'Print')));
+    wrap.append(printHeader(T, 'Standings after round ' + upto));
+    const missing = [];
+    for (let r = 1; r <= upto; r++) { const n = T.rounds[r - 1].games.filter((g) => !g.res).length; if (n) missing.push('round ' + r + ' (' + n + ')'); }
+    if (missing.length) wrap.append(h('div', { class: 'msg warn noprint' }, 'Results are missing in ' + missing.join(', ') + ', so the standings are provisional.'));
+    const head = ['Rk', 'No'].concat(o.showTitle ? ['Ti'] : [], ['Name'], o.showRating ? ['Rtg'] : [], o.showFed ? ['Fed'] : [], o.showClub ? ['Club'] : [], ['Pts'], st.tbs.map((id) => HTM.TB[id].short));
+    if (T.format === 'swiss') for (let r = 1; r <= upto; r++) head.push('Rd' + r);
+    const tb = h('table', { class: 'tbl click' }, h('thead', {}, h('tr', {}, head.map((x, i) => h('th', { title: HTM.TIEBREAKS.find((t) => t.short === x) ? HTM.TIEBREAKS.find((t) => t.short === x).name : '' }, x)))));
+    const body = h('tbody', {});
+    for (const row of st.rows) {
+      const p = row.p;
+      const off = p.withdrawn !== null && p.withdrawn !== undefined;
+      const tr = h('tr', { class: off ? 'off' : '', onclick: () => Dialogs.playerCard(p.id, upto) },
+        h('td', { class: 'r' }, row.rank + (row.tied ? '' : '')), h('td', { class: 'r' }, p.no), o.showTitle ? h('td', {}, p.title) : null, h('td', { class: 'name', dir: 'auto' }, p.name || '(no name)'), o.showRating ? h('td', { class: 'r' }, p.rating || '') : null,
+        o.showFed ? h('td', {}, p.fed) : null, o.showClub ? h('td', { dir: 'auto' }, p.club) : null, h('td', { class: 'r', style: { fontWeight: 700 } }, HTM.fmtPts(row.points)),
+        st.tbs.map((id, k) => h('td', { class: 'r' + (k === 0 ? ' sep' : '') }, HTM.fmtTb(id, id === 'de' ? row.tbShow.de : row.tb[id]))),
+        T.format === 'swiss' ? row.entries.map((e, k) => h('td', { class: 'c' + (k === 0 ? ' sep' : '') }, HTM.cellText(T, row, e))) : null);
+      body.append(tr);
+    }
+    tb.append(body);
+    wrap.append(h('div', { class: 'card', style: { display: 'inline-block', maxWidth: '100%', overflow: 'auto' } }, tb));
+    wrap.append(h('p', { class: 'help noprint' }, 'Tie-breaks in this order: ' + st.tbs.map((id) => HTM.TB[id].name).join(', ') + (st.tbs.length ? '.' : 'none.') + ' Round cells: opponent number, colour (w/b) and result; bye, H = half-point bye, Z = zero-point bye, F = full-point bye, + / - = forfeit. Click a player for the whole card.'));
+    return wrap;
+  };
+
+  function koStandings(T) {
+    if (!T.ko) return empty('No standings yet', 'Create the bracket first.', h('button', { class: 'btn primary', onclick: () => App.go('pairings') }, 'Go to the bracket'));
+    const st = HTM.koStandings(T);
+    const last = T.ko.rounds.length - 1;
+    const tb = h('table', { class: 'tbl' }, h('thead', {}, h('tr', {}, ['Rank', 'Seed', 'Name', 'Rtg', 'Result', 'Matches won'].map((x) => h('th', {}, x)))));
+    const body = h('tbody', {});
+    for (const x of st) {
+      body.append(h('tr', {}, h('td', { class: 'r' }, x.label), h('td', { class: 'r' }, x.p.no), h('td', { class: 'name', dir: 'auto' }, nameOf(x.p)), h('td', { class: 'r' }, x.p.rating || ''),
+        h('td', {}, x.champion ? 'Winner' : x.out ? 'Out in the ' + HTM.koRoundName(T.ko.size, x.lastRound).toLowerCase() : 'Still in the ' + HTM.koRoundName(T.ko.size, Math.max(0, x.lastRound)).toLowerCase()), h('td', { class: 'r' }, x.won)));
+    }
+    tb.append(body);
+    return h('div', {}, h('div', { class: 'toolbar' }, h('b', {}, 'Standings'), h('span', { class: 'spacer' }), h('button', { class: 'btn', onclick: () => window.print() }, 'Print')), printHeader(T, 'Final standings'), h('div', { class: 'card', style: { display: 'inline-block' } }, tb));
+  }
+
+  // ---------------------------------------------------------------------------------------------- cross table (round robin)
+  V.cross = function () {
+    const T = S().T;
+    if (T.format !== 'roundrobin' || !T.rounds.length) return empty('No cross table yet', 'The cross table is available for a round robin once the schedule has been created.', h('button', { class: 'btn primary', onclick: () => App.go('pairings') }, 'Go to the pairings'));
+    const st = HTM.annotate(T, HTM.standings(T));
+    const ct = HTM.crosstable(T, st);
+    const n = st.rows.length, o = T.opts;
+    const head = h('tr', {}, h('th', {}, 'Rk'), h('th', {}, 'Name'), o.showRating ? h('th', {}, 'Rtg') : null, Array.from({ length: n }, (_, i) => h('th', { class: 'c' }, i + 1)), h('th', {}, 'Pts'), st.tbs.map((id) => h('th', {}, HTM.TB[id].short)));
+    const body = h('tbody', {});
+    ct.rows.forEach((row, i) => {
+      body.append(h('tr', {}, h('td', { class: 'r' }, row.rank), h('td', { class: 'nm', dir: 'auto' }, nameOf(row.p)), o.showRating ? h('td', { class: 'r' }, row.p.rating || '') : null,
+        ct.cells[i].map((c, j) => h('td', { class: i === j ? 'self' : '', title: c.length ? c.map((x) => (x.color === 'w' ? 'White' : 'Black') + ' ' + x.sym).join(', ') : '' }, i === j ? '' : c.map((x) => x.sym).join(' '))),
+        h('td', { class: 'r', style: { fontWeight: 700 } }, HTM.fmtPts(row.points)), st.tbs.map((id) => h('td', { class: 'r' }, HTM.fmtTb(id, id === 'de' ? row.tbShow.de : row.tb[id])))));
+    });
+    return h('div', {}, h('div', { class: 'toolbar' }, h('b', {}, 'Cross table'), h('span', { class: 'spacer' }), h('button', { class: 'btn', onclick: () => window.print() }, 'Print')), printHeader(T, 'Cross table'),
+      h('div', { class: 'card', style: { display: 'inline-block', maxWidth: '100%', overflow: 'auto' } }, h('table', { class: 'tbl xt' }, h('thead', {}, head), body)),
+      h('p', { class: 'help noprint' }, 'Rows are in ranking order; the column numbers are the ranks. A cell shows what the row player scored against the column player.'));
+  };
+
+  // ---------------------------------------------------------------------------------------------- settings
+  V.settings = function () {
+    const T = S().T, o = T.opts;
+    const q = (fn) => (e) => App.mutate((t) => fn(t, e.target), { quiet: true });
+    const text = (key, ph, w) => h('input', { class: 'input', dir: 'auto', value: T[key] || '', placeholder: ph || '', style: w ? { width: w } : null, onchange: q((t, el) => { t[key] = el.value.trim(); if (key === 'name') App.refreshTop(); }) });
+    const num = (key, step, min) => h('input', { class: 'input num', type: 'number', step: step || 0.5, min: min === undefined ? 0 : min, value: o[key], onchange: q((t, el) => { const v = parseFloat(el.value); if (isFinite(v)) t.opts[key] = v; }) });
+    const chk = (key, label) => h('label', { class: 'check' }, h('input', { type: 'checkbox', checked: !!o[key], onchange: q((t, el) => { t.opts[key] = el.checked; }) }), label);
+    const wrap = h('div', { class: 'grid2' });
+    const left = h('div', {}), right = h('div', {});
+    left.append(h('div', { class: 'card' }, h('h3', {}, 'Tournament'),
+      field('Name', text('name', 'Tournament name')), field('City / venue', text('city')), field('Organizer', text('organizer')), field('Arbiter', text('arbiter')),
+      field('Dates', h('input', { class: 'input auto', type: 'date', value: T.startDate, onchange: q((t, el) => { t.startDate = el.value; }) }), 'to', h('input', { class: 'input auto', type: 'date', value: T.endDate, onchange: q((t, el) => { t.endDate = el.value; }) })),
+      field('Time control', text('timeControl', 'e.g. 90 minutes + 30 seconds per move')),
+      h('div', { class: 'field' }, h('label', {}, 'Notes'), h('textarea', { class: 'input', rows: 3, dir: 'auto', onchange: q((t, el) => { t.notes = el.value; }) }, T.notes || ''))));
+    const fmtCard = h('div', { class: 'card' }, h('h3', {}, HTM.FORMATS[T.format]));
+    if (T.format === 'swiss') {
+      fmtCard.append(field('Number of rounds', h('input', { class: 'input num', type: 'number', min: Math.max(1, T.rounds.length), max: 30, value: o.rounds, onchange: q((t, el) => { t.opts.rounds = Math.max(t.rounds.length, Math.min(30, parseInt(el.value, 10) || t.opts.rounds)); }) }), h('span', { class: 'help' }, T.rounds.length + ' paired so far')));
+      fmtCard.append(field('Colour in round 1', h('select', { class: 'select auto', onchange: q((t, el) => { t.opts.firstColor = el.value; }) }, h('option', { value: 'white', selected: o.firstColor !== 'black' }, 'the top seed has White'), h('option', { value: 'black', selected: o.firstColor === 'black' }, 'the top seed has Black'))));
+    }
+    if (T.format === 'roundrobin') fmtCard.append(field('Double round robin', h('label', { class: 'check' }, h('input', { type: 'checkbox', checked: o.doubleRR, disabled: T.started, onchange: q((t, el) => { t.opts.doubleRR = el.checked; }) }), 'every pair plays twice, with the colours reversed')));
+    if (T.format === 'knockout') fmtCard.append(field('Games per match', h('select', { class: 'select auto', disabled: T.started, onchange: q((t, el) => { t.opts.koGames = parseInt(el.value, 10); }) }, [1, 2, 3, 4, 5].map((n) => h('option', { value: n, selected: o.koGames === n }, n)))));
+    left.append(fmtCard);
+    const tbCard = h('div', { class: 'card' }, h('h3', {}, 'Tie-breaks'), h('p', { class: 'help', style: { margin: '0 0 6px' } }, 'Players with the same points are ranked by these, in this order.'));
+    for (let i = 0; i < 5; i++) {
+      const cur = o.tiebreaks[i] || '';
+      tbCard.append(field((i + 1) + '.', h('select', { class: 'select', title: cur ? HTM.TB[cur].hint : '', onchange: q((t, el) => { const a = t.opts.tiebreaks.slice(); if (el.value) a[i] = el.value; else a.splice(i, 1); t.opts.tiebreaks = a.filter((x, k) => x && a.indexOf(x) === k); App.go('settings'); }) }, [h('option', { value: '' }, '- none -')].concat(HTM.TIEBREAKS.map((x) => h('option', { value: x.id, selected: cur === x.id }, x.name))))));
+    }
+    left.append(tbCard);
+    right.append(h('div', { class: 'card' }, h('h3', {}, 'Points'),
+      h('div', { class: 'row', style: { marginBottom: '6px' } }, h('button', { class: 'btn sm', onclick: () => App.mutate((t) => { Object.assign(t.opts, { win: 1, draw: 0.5, loss: 0, forfeitWin: 1, pab: 1, halfBye: 0.5, zeroBye: 0, fullBye: 1 }); }) }, 'Standard: 1 / ½ / 0'), h('button', { class: 'btn sm', onclick: () => App.mutate((t) => { Object.assign(t.opts, { win: 3, draw: 1, loss: 0, forfeitWin: 3, pab: 3, halfBye: 1, zeroBye: 0, fullBye: 3 }); }) }, 'Football: 3 / 1 / 0')),
+      field('Win', num('win')), field('Draw', num('draw')), field('Loss', num('loss')), field('Win by forfeit', num('forfeitWin')),
+      T.format === 'swiss' ? [field('Pairing bye', num('pab')), field('Half-point bye', num('halfBye')), field('Zero-point bye', num('zeroBye')), field('Full-point bye', num('fullBye'))] : null,
+      h('p', { class: 'help' }, 'Changing the points recalculates all standings.')));
+    right.append(h('div', { class: 'card' }, h('h3', {}, 'Columns'), h('div', { class: 'row', style: { gap: '16px' } }, chk('showTitle', 'Title'), chk('showRating', 'Rating'), chk('showFed', 'Federation'), chk('showClub', 'Club'))));
+    right.append(h('div', { class: 'card' }, h('h3', {}, 'This tournament'),
+      h('div', { class: 'row' },
+        h('button', { class: 'btn', onclick: () => App.exportFile(T.id) }, 'Save file...'), h('button', { class: 'btn', onclick: () => App.duplicate(T.id) }, 'Duplicate'),
+        h('button', { class: 'btn', disabled: !T.started, onclick: () => V.resetPairings() }, T.format === 'swiss' ? 'Delete all rounds' : T.format === 'knockout' ? 'Delete the bracket' : 'Delete the schedule'),
+        h('button', { class: 'btn', onclick: () => App.remove(T.id) }, 'Delete tournament')),
+      h('p', { class: 'help' }, 'Created ' + UI.fmtDate(T.created) + '. Deleting the pairings keeps the players; you can undo it with the Undo button.')));
+    wrap.append(left, right);
+    return wrap;
+  };
+
+  V.resetPairings = function () {
+    const T = S().T;
+    App.confirm(['Delete all pairings and results of this tournament?', 'The players stay. You can undo this with the Undo button.'], 'Delete', true).then((yes) => {
+      if (yes) { App.mutate((t) => { t.rounds = []; t.ko = null; t.started = false; for (const p of t.players) p.withdrawn = null; }); S().round = 1; S().stRound = null; }
+    });
+  };
+})();
+</script>
+<script>
+/* Human Tournament Maker - application state, storage (browser storage + files), undo, navigation. */
+(function () {
+  'use strict';
+  const { h, clear, toast } = UI;
+  const S = { T: null, view: 'home', round: 1, stRound: null, undo: [], redo: [], index: [], savedAt: null, focusSel: null, lastView: null };
+  const App = window.App = { S };
+  App.confirm = UI.confirm;
+
+  // ---------------------------------------------------------------------------------------------- storage
+  function loadIndex() { try { const a = JSON.parse(UI.store.get('htm.index') || '[]'); S.index = Array.isArray(a) ? a.filter((x) => x && x.id) : []; } catch (e) { S.index = []; } }
+  function entryOf(T) { return { id: T.id, name: T.name, format: T.format, players: T.players.length, rounds: T.format === 'knockout' ? (T.ko ? T.ko.rounds.length : 0) : T.rounds.length, planned: HTM.plannedRounds(T), modified: T.modified }; }
+  let warned = false;
+  function writeEntry(T) {
+    const ok1 = UI.store.set('htm.t.' + T.id, JSON.stringify(T));
+    const e = entryOf(T), i = S.index.findIndex((x) => x.id === T.id);
+    if (i >= 0) S.index[i] = e; else S.index.push(e);
+    const ok2 = UI.store.set('htm.index', JSON.stringify(S.index));
+    if (!(ok1 && ok2) && !warned) { warned = true; toast('The browser did not allow saving here. Use "Save file" to keep your tournament.', 'err'); }
+    return ok1 && ok2;
+  }
+  function persist() {
+    if (!S.T) return;
+    writeEntry(S.T);
+    UI.store.set('htm.cur', S.T.id);
+    S.savedAt = new Date();
+    updateStatus();
+  }
+  App.persist = persist;
+
+  // ---------------------------------------------------------------------------------------------- changing the tournament (with undo)
+  App.mutate = function (fn, opts) {
+    opts = opts || {};
+    const T = S.T, before = JSON.stringify(T);
+    try { fn(T); } catch (e) { S.T = JSON.parse(before); toast(e.message || String(e), 'err'); App.render(); return false; }
+    S.undo.push(before);
+    if (S.undo.length > 150) S.undo.shift();
+    S.redo = [];
+    HTM.touch(S.T);
+    persist();
+    if (opts.quiet) renderTop(); else App.render();
+    return true;
+  };
+  App.undo = function () { if (!S.undo.length) return; S.redo.push(JSON.stringify(S.T)); S.T = JSON.parse(S.undo.pop()); persist(); App.render(); };
+  App.redo = function () { if (!S.redo.length) return; S.undo.push(JSON.stringify(S.T)); S.T = JSON.parse(S.redo.pop()); persist(); App.render(); };
+
+  App.addTournament = function (T) { S.T = T; S.undo = []; S.redo = []; S.round = 1; S.stRound = null; S.view = 'players'; persist(); App.render(); };
+  App.addPlayers = function (list) {
+    const swissLate = S.T.started && S.T.format === 'swiss';
+    App.mutate((t) => { for (const f of list) { if (swissLate) HTM.addLatePlayer(t, f, 'zero'); else HTM.addPlayer(t, f); } });
+    if (swissLate) toast('Late entries get zero points for the rounds already paired. Change a bye in the player list if needed.');
+  };
+  App.addLatePlayer = function (f, kind) { App.mutate((t) => { HTM.addLatePlayer(t, f, kind); }); S.focusSel = '#add-name'; App.render(); };
+
+  // ---------------------------------------------------------------------------------------------- navigation
+  App.go = function (view) { S.view = view; S.lastView = null; App.render(); };
+  App.home = function () { S.T = null; S.view = 'home'; S.undo = []; S.redo = []; S.lastView = null; UI.store.del('htm.cur'); App.render(); };
+  App.openTournament = function (id) {
+    const raw = UI.store.get('htm.t.' + id);
+    if (!raw) { toast('This tournament is no longer in the browser storage.', 'err'); S.index = S.index.filter((x) => x.id !== id); UI.store.set('htm.index', JSON.stringify(S.index)); App.render(); return; }
+    let T;
+    try { T = HTM.validate(JSON.parse(raw)); } catch (e) { toast('This tournament could not be opened: ' + e.message, 'err'); return; }
+    S.T = T; S.undo = []; S.redo = []; S.stRound = null;
+    S.round = Math.max(1, T.rounds.length);
+    S.view = T.started ? 'pairings' : 'players'; S.lastView = null;
+    UI.store.set('htm.cur', id);
+    App.render();
+  };
+  function loadAny(id) {
+    if (S.T && S.T.id === id) return S.T;
+    try { return HTM.validate(JSON.parse(UI.store.get('htm.t.' + id))); } catch (e) { return null; }
+  }
+  App.exportFile = function (id) {
+    const T = loadAny(id);
+    if (!T) { toast('This tournament could not be read.', 'err'); return; }
+    UI.download(UI.slug(T.name) + '.tournament.json', HTM.exportJSON(T), 'application/json');
+    toast('Saved a copy of "' + T.name + '" to your downloads.');
+  };
+  App.duplicate = function (id) {
+    const T = loadAny(id);
+    if (!T) { toast('This tournament could not be read.', 'err'); return; }
+    const c = HTM.clone(T); c.id = HTM.uid('t'); c.name = T.name + ' (copy)'; c.created = c.modified = new Date().toISOString();
+    writeEntry(c);
+    toast('Duplicated as "' + c.name + '".');
+    App.render();
+  };
+  App.remove = function (id) {
+    const e = S.index.find((x) => x.id === id);
+    App.confirm(['Delete the tournament "' + (e ? e.name : '') + '"?', 'It is removed from this browser and cannot be brought back. Use "Save file" first if you want to keep a copy.'], 'Delete', true).then((yes) => {
+      if (!yes) return;
+      UI.store.del('htm.t.' + id);
+      S.index = S.index.filter((x) => x.id !== id);
+      UI.store.set('htm.index', JSON.stringify(S.index));
+      if (S.T && S.T.id === id) { S.T = null; S.view = 'home'; S.undo = []; S.redo = []; UI.store.del('htm.cur'); }
+      App.render();
+    });
+  };
+  App.importText = function (text) {
+    try {
+      const T = HTM.importJSON(text);
+      if (S.index.some((x) => x.id === T.id)) { T.id = HTM.uid('t'); T.name += ' (opened file)'; }
+      S.T = T; S.undo = []; S.redo = []; S.stRound = null; S.round = Math.max(1, T.rounds.length); S.view = T.started ? 'pairings' : 'players'; S.lastView = null;
+      persist(); App.render(); toast('Opened "' + T.name + '".');
+    } catch (e) { toast(e.message, 'err'); }
+  };
+  App.openFile = function () {
+    const inp = h('input', { type: 'file', accept: '.json,application/json', style: { display: 'none' } });
+    inp.addEventListener('change', async () => { if (inp.files[0]) { try { App.importText(await UI.readFile(inp.files[0])); } catch (e) { toast(e.message, 'err'); } } inp.remove(); });
+    document.body.appendChild(inp); inp.click();
+  };
+
+  // a small demo: 12 players, three rounds played, the fourth paired
+  App.demo = function () {
+    const names = ['Alma Stone', 'Boaz Reed', 'Chloe Banks', 'Dov Marsh', 'Eden Cole', 'Fay Holt', 'Gil Moore', 'Hana Wells', 'Ivan Brooks', 'Jade Finch', 'Kobi Hart', 'Lena Frost'];
+    let seed = 12345; const rnd = () => { seed = (seed * 1664525 + 1013904223) % 4294967296; return seed / 4294967296; };
+    const T = HTM.newTournament({ name: 'Demo club championship', format: 'swiss', rounds: 5, city: 'Chess club', timeControl: '15 minutes + 10 seconds per move' });
+    names.forEach((n, i) => HTM.addPlayer(T, { name: n, rating: 2150 - i * 62 + Math.floor(rnd() * 30), title: i === 0 ? 'FM' : '', fed: '', club: i % 3 === 0 ? 'Rooks' : i % 3 === 1 ? 'Knights' : 'Bishops' }));
+    HTM.sortByRating(T);
+    const pm = HTM.playerMap(T);
+    for (let r = 1; r <= 4; r++) {
+      const res = HTM.pairSwiss(T, r); HTM.applySwissRound(T, r, res);
+      if (r === 4) break;
+      for (const g of T.rounds[r - 1].games) { const x = rnd(), pw = 1 / (1 + Math.pow(10, -(pm.get(g.w).rating - pm.get(g.b).rating) / 400)); g.res = x < 0.2 ? '1/2' : (x - 0.2) / 0.8 < pw ? '1-0' : '0-1'; }
+    }
+    S.T = T; S.undo = []; S.redo = []; S.round = 4; S.stRound = null; S.view = 'pairings'; S.lastView = null;
+    persist(); App.render(); toast('A demo tournament was created. Enter the results of round 4 to continue.');
+  };
+
+  // ---------------------------------------------------------------------------------------------- drawing
+  function logo() {
+    const s = h('span', { style: { display: 'inline-flex' } });
+    s.innerHTML = '<svg width="20" height="20" viewBox="0 0 16 16"><rect width="16" height="16" fill="#222"/><rect width="8" height="8" fill="#484848"/><rect x="8" y="8" width="8" height="8" fill="#484848"/><path d="M4 3h2v4l3-4h2.2L7.6 7.6 11.4 13H9L6 8.8V13H4z" fill="#fff"/></svg>';
+    return s;
+  }
+  function updateStatus() {
+    const el = UI.$('#top-status');
+    if (!el || !S.T) return;
+    const T = S.T, planned = HTM.plannedRounds(T);
+    const parts = [HTM.FORMATS[T.format], T.players.length + ' players'];
+    if (T.format === 'swiss') parts.push(T.rounds.length + ' of ' + planned + ' rounds paired');
+    else if (T.format === 'roundrobin' && T.started) parts.push(T.rounds.filter((r, i) => HTM.roundComplete(T, i + 1)).length + ' of ' + planned + ' rounds played');
+    el.textContent = parts.join(' - ') + (S.savedAt ? ' - saved ' + UI.fmtTime(S.savedAt) : '');
+  }
+  function renderTop() {
+    const top = UI.$('#topbar');
+    clear(top);
+    top.append(h('div', { class: 'brand', title: 'All tournaments', style: { cursor: 'pointer' }, onclick: () => App.home() }, logo(), 'Human Tournament Maker'));
+    if (!S.T) return;
+    const T = S.T;
+    const tabs = [['players', 'Players'], ['pairings', T.format === 'knockout' ? 'Bracket' : 'Pairings'], ['standings', 'Standings']];
+    if (T.format === 'roundrobin') tabs.push(['cross', 'Cross table']);
+    tabs.push(['settings', 'Settings']);
+    top.append(h('nav', { class: 'tabs' }, tabs.map(([k, l]) => h('button', { class: 'tab-btn' + (S.view === k ? ' active' : ''), onclick: () => App.go(k) }, l))));
+    top.append(h('div', { class: 'spacer' }), h('div', { id: 'top-status', title: T.name }),
+      h('div', { class: 'top-tools' },
+        h('button', { class: 'btn sm', disabled: !S.undo.length, title: 'Undo (Ctrl+Z)', onclick: () => App.undo() }, 'Undo'),
+        h('button', { class: 'btn sm', disabled: !S.redo.length, title: 'Redo (Ctrl+Y)', onclick: () => App.redo() }, 'Redo'),
+        h('button', { class: 'btn sm', onclick: () => App.exportFile(T.id) }, 'Save file'),
+        h('button', { class: 'btn sm', onclick: () => App.home() }, 'Tournaments')));
+    updateStatus();
+  }
+  App.refreshTop = renderTop;
+  App.refreshTabs = function () {                                  // after a result was typed: refresh the round marks without redrawing the table
+    const T = S.T;
+    if (!T || S.view !== 'pairings') return;
+    UI.$$('.toolbar .chip').forEach((c, i) => { const r = i + 1, done = r <= T.rounds.length && HTM.roundComplete(T, r); c.classList.toggle('done', done); c.textContent = r + (done ? ' ✓' : ''); });
+  };
+  App.render = function () {
+    const main = UI.$('#main');
+    const keep = S.lastView === S.view && S.T ? main.scrollTop : 0;
+    renderTop();
+    clear(main);
+    try { main.append(S.T ? (window.Views[S.view] || window.Views.players)() : window.Views.home()); } catch (e) { console.error(e); main.append(h('div', { class: 'msg err' }, 'Something went wrong while drawing this screen: ' + e.message)); }
+    S.lastView = S.view;
+    main.scrollTop = keep;
+    document.title = (S.T ? S.T.name + ' - ' : '') + 'Human Tournament Maker';
+    if (S.focusSel) { const el = UI.$(S.focusSel); if (el) el.focus(); S.focusSel = null; }
+  };
+
+  // ---------------------------------------------------------------------------------------------- keyboard, drag and drop, start
+  document.addEventListener('keydown', (e) => {
+    const t = e.target, tag = t && t.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || document.querySelector('.modal-back')) return;
+    if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === 'z') { e.preventDefault(); App.undo(); }
+    else if ((e.ctrlKey || e.metaKey) && (e.key.toLowerCase() === 'y' || (e.shiftKey && e.key.toLowerCase() === 'z'))) { e.preventDefault(); App.redo(); }
+  });
+  let dragDepth = 0;
+  window.addEventListener('dragenter', (e) => { if (e.dataTransfer && Array.from(e.dataTransfer.types || []).includes('Files')) { dragDepth++; document.body.classList.add('dragging'); } });
+  window.addEventListener('dragleave', () => { dragDepth = Math.max(0, dragDepth - 1); if (!dragDepth) document.body.classList.remove('dragging'); });
+  window.addEventListener('dragover', (e) => { if (document.body.classList.contains('dragging')) e.preventDefault(); });
+  window.addEventListener('drop', async (e) => {
+    dragDepth = 0; document.body.classList.remove('dragging');
+    const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+    if (!f) return;
+    e.preventDefault();
+    try { App.importText(await UI.readFile(f)); } catch (err) { toast(err.message, 'err'); }
+  });
+
+  loadIndex();
+  const cur = UI.store.get('htm.cur');
+  if (cur && S.index.some((x) => x.id === cur)) App.openTournament(cur); else App.render();
+})();
+</script>
+</body>
+</html>
