@@ -10,6 +10,12 @@ Open `index.html` in a browser (Chrome, Edge, Firefox or Safari). That is all: t
 
 **Your data.** Every change is saved in the browser at once, so closing the window loses nothing. Use **Save file** (top bar) to keep a copy as a file, and **Open file** or drag a file into the window to load one, for example on another computer. **Undo** and **Redo** (Ctrl+Z, Ctrl+Y) take back changes, including a deleted round. Browser data can be wiped by "clear browsing data", so save a file when the tournament is over.
 
+## Windows app (exe)
+
+The [releases page](https://github.com/Alon-Berg/human-tournament-maker/releases) has `human-tournament-maker.exe`: the same program in a window of its own, nothing to install, just double-click it. It needs Windows 10 or 11 with Microsoft Edge WebView2 (part of Windows 11 and of up-to-date Windows 10). The tournaments are kept in the window's own storage in `%LOCALAPPDATA%\HumanTournamentMaker`, so they are still there the next time you start it (the exe and a browser do not share data: move a tournament with **Save file** and **Open file**), and **Save file** / **Save as CSV** open the usual "Save as" dialog. The exe is not code-signed, so Windows SmartScreen may warn the first time ("More info", then "Run anyway").
+
+Build it yourself with `pip install pywebview pyinstaller pillow` and `python tools/build_exe.py` (about a minute; the result is `dist/human-tournament-maker.exe`). The script ends with `human-tournament-maker.exe --selftest`: a hidden window that loads the page, pairs a Swiss round with the engine, checks the browser storage and saves a file through the page's own download function; it exits with code 0 when everything works. `python launcher.py` starts the app from the sources.
+
 ## What it can do
 
 * **Three formats.** *Swiss system* (Dutch pairings, any number of rounds), *round robin* (the FIDE Berger tables, single or double) and *knockout* (seeded single elimination with byes for the top seeds, matches of 1 to 5 games, a tie-break winner for tied matches).
@@ -51,5 +57,6 @@ deno run -A tests/test_engine.js
 * `index.html`, `app.css`, `js/` - the program (`core.js` model and standings, `swiss.js` Swiss pairing, `rr.js` round robin and knockout, `io.js` files, `ui.js`, `dialogs.js`, `views.js`, `app.js` the screens)
 * `human-tournament-maker.html` - the same in one file
 * `tests/test_engine.js`, `tools/build_single.py`, `docs/` - tests, build script, pictures
+* `launcher.py`, `tools/build_exe.py` - the Windows app: a pywebview window around `human-tournament-maker.html`, and the PyInstaller build of it (`dist/` is not stored in the repository)
 
 Nothing is sent anywhere: the program is plain HTML and JavaScript with no libraries and no network access.

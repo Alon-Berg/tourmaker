@@ -4,3 +4,7 @@
 Thumbs.db
 .DS_Store
 *.log
+
+# build output of tools/build_exe.py
+dist/
+__pycache__/
