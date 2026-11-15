@@ -1,4 +1,4 @@
-/* Human Tournament Maker - dialogs: new tournament, paste a player list, byes, withdrawal, manual pairings, player card, knockout match. */
+/* Tourmaker - dialogs: new tournament, paste a player list, byes, withdrawal, manual pairings, player card, knockout match. */
 (function () {
   'use strict';
   const { h, clear, toast, modal } = UI;

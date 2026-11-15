@@ -313,7 +313,7 @@ function playRandom(T, rng) {
   eq(back.players.map((p) => [p.id, p.no, p.name, p.rating]), T.players.map((p) => [p.id, p.no, p.name, p.rating]), '... and all players');
   let msg = '';
   try { HTM.importJSON('{"nothing": 1}'); } catch (e) { msg = e.message; }
-  ok(/not a Human Tournament Maker file/.test(msg), 'a file that is not a tournament is refused with a plain message');
+  ok(/not a Tourmaker file/.test(msg), 'a file that is not a tournament is refused with a plain message');
   try { HTM.importJSON('x{'); msg = ''; } catch (e) { msg = e.message; }
   ok(/not valid JSON/.test(msg), 'broken JSON is refused with a plain message');
   const dirty = JSON.parse(HTM.exportJSON(T)); dirty.tournament.rounds[0].games.push({ w: 999, b: 1, res: '1-0' }); dirty.tournament.rounds[0].games[0].res = 'banana';

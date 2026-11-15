@@ -1,4 +1,4 @@
-/* Human Tournament Maker - core: data model, scoring, standings and tie-breaks.
+/* Tourmaker - core: data model, scoring, standings and tie-breaks.
    Pure logic, no DOM. Loaded as a classic script in the browser and imported by the tests (Deno). */
 (function (root) {
   'use strict';

@@ -1,4 +1,4 @@
-/* Human Tournament Maker - application state, storage (browser storage + files), undo, navigation. */
+/* Tourmaker - application state, storage (browser storage + files), undo, navigation. */
 (function () {
   'use strict';
   const { h, clear, toast } = UI;
@@ -143,7 +143,7 @@
   function renderTop() {
     const top = UI.$('#topbar');
     clear(top);
-    top.append(h('div', { class: 'brand', title: 'All tournaments', style: { cursor: 'pointer' }, onclick: () => App.home() }, logo(), 'Human Tournament Maker'));
+    top.append(h('div', { class: 'brand', title: 'All tournaments', style: { cursor: 'pointer' }, onclick: () => App.home() }, logo(), 'Tourmaker'));
     if (!S.T) return;
     const T = S.T;
     const tabs = [['players', 'Players'], ['pairings', T.format === 'knockout' ? 'Bracket' : 'Pairings'], ['standings', 'Standings']];
@@ -172,7 +172,7 @@
     try { main.append(S.T ? (window.Views[S.view] || window.Views.players)() : window.Views.home()); } catch (e) { console.error(e); main.append(h('div', { class: 'msg err' }, 'Something went wrong while drawing this screen: ' + e.message)); }
     S.lastView = S.view;
     main.scrollTop = keep;
-    document.title = (S.T ? S.T.name + ' - ' : '') + 'Human Tournament Maker';
+    document.title = (S.T ? S.T.name + ' - ' : '') + 'Tourmaker';
     if (S.focusSel) { const el = UI.$(S.focusSel); if (el) el.focus(); S.focusSel = null; }
   };
 

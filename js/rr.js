@@ -1,4 +1,4 @@
-/* Human Tournament Maker - round robin (FIDE Berger tables) and knockout brackets. Pure logic, no DOM. */
+/* Tourmaker - round robin (FIDE Berger tables) and knockout brackets. Pure logic, no DOM. */
 (function (root) {
   'use strict';
   const HTM = root.HTM = root.HTM || {};

@@ -1,14 +1,14 @@
-/* Human Tournament Maker - files: JSON (tournament file), CSV, validation of loaded data, crosstable. Pure logic, no DOM. */
+/* Tourmaker - files: JSON (tournament file), CSV, validation of loaded data, crosstable. Pure logic, no DOM. */
 (function (root) {
   'use strict';
   const HTM = root.HTM = root.HTM || {};
   const RES = new Set(HTM.RESULTS);
 
-  HTM.exportJSON = function (T) { return JSON.stringify({ app: 'Human Tournament Maker', version: HTM.VERSION, tournament: T }, null, 1); };
+  HTM.exportJSON = function (T) { return JSON.stringify({ app: 'Tourmaker', version: HTM.VERSION, tournament: T }, null, 1); };
 
   // Checks and repairs a tournament that comes from a file or from the browser storage. Throws an Error with a plain message when it cannot be used.
   HTM.validate = function (T) {
-    if (!T || typeof T !== 'object' || !Array.isArray(T.players) || !HTM.FORMATS[T.format]) throw new Error('This is not a Human Tournament Maker file.');
+    if (!T || typeof T !== 'object' || !Array.isArray(T.players) || !HTM.FORMATS[T.format]) throw new Error('This is not a Tourmaker file.');
     const fmt = T.format;
     T.id = typeof T.id === 'string' && T.id ? T.id : HTM.uid('t');
     for (const k of ['name', 'city', 'organizer', 'arbiter', 'startDate', 'endDate', 'timeControl', 'notes']) T[k] = typeof T[k] === 'string' ? T[k] : '';

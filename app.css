@@ -1,4 +1,4 @@
-/* Human Tournament Maker - plain, classic desktop look (in the spirit of Swiss-Manager / SP98 Sevilla): grey window, white panels, thin borders, no colour accents */
+/* Tourmaker - plain, classic desktop look (in the spirit of Swiss-Manager / SP98 Sevilla): grey window, white panels, thin borders, no colour accents */
 :root {
   --bg: #f0f0f0; --panel: #ffffff; --panel2: #f6f6f6; --head: #e4e4e4;
   --line: #9c9c9c; --line2: #d0d0d0; --text: #000000; --muted: #505050; --faint: #808080;

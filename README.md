@@ -1,4 +1,4 @@
-# Human Tournament Maker
+# Tourmaker
 
 A small program for running chess tournaments between people. Enter the players, let the program make the pairings of every round, type the results as they come in, and print the pairings and the standings. It has the plain, classic look of the usual tournament programs and works without a server, an account or an internet connection.
 
@@ -6,15 +6,15 @@ A small program for running chess tournaments between people. Enter the players,
 
 ## Use it
 
-Open `index.html` in a browser (Chrome, Edge, Firefox or Safari). That is all: there is nothing to install. The file `human-tournament-maker.html` is the same program in one single file, handy for copying to a USB stick or sending by mail; it is built from the sources with `python tools/build_single.py`.
+Open `index.html` in a browser (Chrome, Edge, Firefox or Safari). That is all: there is nothing to install. The file `tourmaker.html` is the same program in one single file, handy for copying to a USB stick or sending by mail; it is built from the sources with `python tools/build_single.py`.
 
 **Your data.** Every change is saved in the browser at once, so closing the window loses nothing. Use **Save file** (top bar) to keep a copy as a file, and **Open file** or drag a file into the window to load one, for example on another computer. **Undo** and **Redo** (Ctrl+Z, Ctrl+Y) take back changes, including a deleted round. Browser data can be wiped by "clear browsing data", so save a file when the tournament is over.
 
 ## Windows app (exe)
 
-The [releases page](https://github.com/Alon-Berg/human-tournament-maker/releases) has `human-tournament-maker.exe`: the same program in a window of its own, nothing to install, just double-click it. It needs Windows 10 or 11 with Microsoft Edge WebView2 (part of Windows 11 and of up-to-date Windows 10). The tournaments are kept in the window's own storage in `%LOCALAPPDATA%\HumanTournamentMaker`, so they are still there the next time you start it (the exe and a browser do not share data: move a tournament with **Save file** and **Open file**), and **Save file** / **Save as CSV** open the usual "Save as" dialog. The exe is not code-signed, so Windows SmartScreen may warn the first time ("More info", then "Run anyway").
+The [releases page](https://github.com/Alon-Berg/tourmaker/releases) has `tourmaker.exe`: the same program in a window of its own, nothing to install, just double-click it. It needs Windows 10 or 11 with Microsoft Edge WebView2 (part of Windows 11 and of up-to-date Windows 10). The tournaments are kept in the window's own storage in `%LOCALAPPDATA%\HumanTournamentMaker`, so they are still there the next time you start it (the exe and a browser do not share data: move a tournament with **Save file** and **Open file**), and **Save file** / **Save as CSV** open the usual "Save as" dialog. The exe is not code-signed, so Windows SmartScreen may warn the first time ("More info", then "Run anyway").
 
-Build it yourself with `pip install pywebview pyinstaller pillow` and `python tools/build_exe.py` (about a minute; the result is `dist/human-tournament-maker.exe`). The script ends with `human-tournament-maker.exe --selftest`: a hidden window that loads the page, pairs a Swiss round with the engine, checks the browser storage and saves a file through the page's own download function; it exits with code 0 when everything works. `python launcher.py` starts the app from the sources.
+Build it yourself with `pip install pywebview pyinstaller pillow` and `python tools/build_exe.py` (about a minute; the result is `dist/tourmaker.exe`). The script ends with `tourmaker.exe --selftest`: a hidden window that loads the page, pairs a Swiss round with the engine, checks the browser storage and saves a file through the page's own download function; it exits with code 0 when everything works. `python launcher.py` starts the app from the sources.
 
 ## What it can do
 
@@ -55,8 +55,8 @@ deno run -A tests/test_engine.js
 ## Files
 
 * `index.html`, `app.css`, `js/` - the program (`core.js` model and standings, `swiss.js` Swiss pairing, `rr.js` round robin and knockout, `io.js` files, `ui.js`, `dialogs.js`, `views.js`, `app.js` the screens)
-* `human-tournament-maker.html` - the same in one file
+* `tourmaker.html` - the same in one file
 * `tests/test_engine.js`, `tools/build_single.py`, `docs/` - tests, build script, pictures
-* `launcher.py`, `tools/build_exe.py` - the Windows app: a pywebview window around `human-tournament-maker.html`, and the PyInstaller build of it (`dist/` is not stored in the repository)
+* `launcher.py`, `tools/build_exe.py` - the Windows app: a pywebview window around `tourmaker.html`, and the PyInstaller build of it (`dist/` is not stored in the repository)
 
 Nothing is sent anywhere: the program is plain HTML and JavaScript with no libraries and no network access.

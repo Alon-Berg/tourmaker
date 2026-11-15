@@ -1,4 +1,4 @@
-/* Human Tournament Maker - the screens: tournaments list, players, pairings and results, bracket, standings, cross table, settings. */
+/* Tourmaker - the screens: tournaments list, players, pairings and results, bracket, standings, cross table, settings. */
 (function () {
   'use strict';
   const { h, clear, toast } = UI;

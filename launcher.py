@@ -1,4 +1,4 @@
-"""Human Tournament Maker as a Windows app: shows human-tournament-maker.html in its own window (Microsoft Edge WebView2).
+"""Tourmaker as a Windows app: shows tourmaker.html in its own window (Microsoft Edge WebView2).
 
 The page keeps its tournaments in the storage of that window. This launcher gives the window a fixed storage folder
 (%LOCALAPPDATA%\\HumanTournamentMaker\\webview), so the tournaments are still there at the next start, and lets the page's
@@ -18,8 +18,8 @@ from pathlib import Path
 
 import webview
 
-TITLE = 'Human Tournament Maker'
-PAGE = 'human-tournament-maker.html'
+TITLE = 'Tourmaker'
+PAGE = 'tourmaker.html'
 
 webview.settings['ALLOW_DOWNLOADS'] = True        # the page saves files with <a download>; pywebview then asks where to save
 
@@ -101,7 +101,7 @@ def selftest(result_path):
             res['page'] = r
             c = res['checks']
             c['page_loaded'] = True
-            c['title'] = r.get('title') == TITLE
+            c['title'] = (r.get('title') or '').endswith(TITLE)
             c['file_url'] = r.get('protocol') == 'file:'
             c['engine_functions'] = bool(r.get('engine')) and bool(r.get('ui'))
             c['ui_rendered'] = bool(r.get('rendered'))

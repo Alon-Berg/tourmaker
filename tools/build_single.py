@@ -1,4 +1,4 @@
-"""Builds human-tournament-maker.html: index.html with app.css and all scripts inlined, one file that works by double-click.
+"""Builds tourmaker.html: index.html with app.css and all scripts inlined, one file that works by double-click.
 
 usage: python tools/build_single.py
 """
@@ -21,7 +21,7 @@ def main():
 
     html = re.sub(r'<link rel="stylesheet" href="([^"]+)">', css, html)
     html = re.sub(r'<script src="([^"]+)"></script>', js, html)
-    out = ROOT / "human-tournament-maker.html"
+    out = ROOT / "tourmaker.html"
     out.write_text(html, encoding="utf-8", newline="\n")
     print("wrote %s (%d bytes)" % (out.name, out.stat().st_size))
 

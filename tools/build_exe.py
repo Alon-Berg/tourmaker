@@ -1,9 +1,9 @@
-"""Builds dist/human-tournament-maker.exe: the single-file page in its own window (pywebview + Edge WebView2), one exe, no console.
+"""Builds dist/tourmaker.exe: the single-file page in its own window (pywebview + Edge WebView2), one exe, no console.
 
 usage: python tools/build_exe.py [--work DIR] [--low] [--no-test]
   --work DIR   scratch folder for PyInstaller (default: <temp>/htm-exe-build; it is emptied first)
   --low        run at below-normal priority (the build uses a lot of CPU for a minute)
-  --no-test    skip the final `human-tournament-maker.exe --selftest`
+  --no-test    skip the final `tourmaker.exe --selftest`
 needs: Windows 10/11, Python 3.10+ and `pip install pywebview pyinstaller` (and Pillow for the icon; without it the exe has the default icon)
 """
 import argparse
@@ -17,7 +17,7 @@ import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-NAME = 'human-tournament-maker'
+NAME = 'tourmaker'
 
 
 def make_icon(path):
@@ -58,7 +58,7 @@ def main():
     work.mkdir(parents=True)
     cmd = [sys.executable, '-m', 'PyInstaller', '--noconfirm', '--clean', '--onefile', '--noconsole', '--name', NAME,
            '--distpath', str(work / 'dist'), '--workpath', str(work / 'build'), '--specpath', str(work),
-           '--add-data', '%s;.' % (ROOT / 'human-tournament-maker.html')]
+           '--add-data', '%s;.' % (ROOT / 'tourmaker.html')]
     icon = make_icon(work / 'icon.ico')
     if icon:
         cmd += ['--icon', str(icon)]

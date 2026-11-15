@@ -1,4 +1,4 @@
-/* Human Tournament Maker - Swiss pairings (Dutch system, following FIDE C.04.3 in structure; see README for the differences).
+/* Tourmaker - Swiss pairings (Dutch system, following FIDE C.04.3 in structure; see README for the differences).
    Score brackets from the top; in a bracket the upper half (S1) is paired with the lower half (S2) in the order of the transpositions;
    no rematches, the bye goes to the lowest-ranked player who has not had one, colours follow the colour preferences. Pure logic, no DOM. */
 (function (root) {

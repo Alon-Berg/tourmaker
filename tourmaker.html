@@ -3,10 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Human Tournament Maker</title>
+<title>Tourmaker</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%23222'/%3E%3Crect x='0' y='0' width='8' height='8' fill='%23484848'/%3E%3Crect x='8' y='8' width='8' height='8' fill='%23484848'/%3E%3Cpath d='M4 3h2v4l3-4h2.2L7.6 7.6 11.4 13H9L6 8.8V13H4z' fill='%23fff'/%3E%3C/svg%3E">
 <style>
-/* Human Tournament Maker - plain, classic desktop look (in the spirit of Swiss-Manager / SP98 Sevilla): grey window, white panels, thin borders, no colour accents */
+/* Tourmaker - plain, classic desktop look (in the spirit of Swiss-Manager / SP98 Sevilla): grey window, white panels, thin borders, no colour accents */
 :root {
   --bg: #f0f0f0; --panel: #ffffff; --panel2: #f6f6f6; --head: #e4e4e4;
   --line: #9c9c9c; --line2: #d0d0d0; --text: #000000; --muted: #505050; --faint: #808080;
@@ -143,7 +143,7 @@ body.dragging #drop { display: flex; }
 <div id="modal-root"></div>
 <div id="drop">Drop a tournament file here</div>
 <script>
-/* Human Tournament Maker - core: data model, scoring, standings and tie-breaks.
+/* Tourmaker - core: data model, scoring, standings and tie-breaks.
    Pure logic, no DOM. Loaded as a classic script in the browser and imported by the tests (Deno). */
 (function (root) {
   'use strict';
@@ -456,7 +456,7 @@ body.dragging #drop { display: flex; }
 })(typeof globalThis !== 'undefined' ? globalThis : this);
 </script>
 <script>
-/* Human Tournament Maker - Swiss pairings (Dutch system, following FIDE C.04.3 in structure; see README for the differences).
+/* Tourmaker - Swiss pairings (Dutch system, following FIDE C.04.3 in structure; see README for the differences).
    Score brackets from the top; in a bracket the upper half (S1) is paired with the lower half (S2) in the order of the transpositions;
    no rematches, the bye goes to the lowest-ranked player who has not had one, colours follow the colour preferences. Pure logic, no DOM. */
 (function (root) {
@@ -816,7 +816,7 @@ body.dragging #drop { display: flex; }
 })(typeof globalThis !== 'undefined' ? globalThis : this);
 </script>
 <script>
-/* Human Tournament Maker - round robin (FIDE Berger tables) and knockout brackets. Pure logic, no DOM. */
+/* Tourmaker - round robin (FIDE Berger tables) and knockout brackets. Pure logic, no DOM. */
 (function (root) {
   'use strict';
   const HTM = root.HTM = root.HTM || {};
@@ -972,17 +972,17 @@ body.dragging #drop { display: flex; }
 })(typeof globalThis !== 'undefined' ? globalThis : this);
 </script>
 <script>
-/* Human Tournament Maker - files: JSON (tournament file), CSV, validation of loaded data, crosstable. Pure logic, no DOM. */
+/* Tourmaker - files: JSON (tournament file), CSV, validation of loaded data, crosstable. Pure logic, no DOM. */
 (function (root) {
   'use strict';
   const HTM = root.HTM = root.HTM || {};
   const RES = new Set(HTM.RESULTS);
 
-  HTM.exportJSON = function (T) { return JSON.stringify({ app: 'Human Tournament Maker', version: HTM.VERSION, tournament: T }, null, 1); };
+  HTM.exportJSON = function (T) { return JSON.stringify({ app: 'Tourmaker', version: HTM.VERSION, tournament: T }, null, 1); };
 
   // Checks and repairs a tournament that comes from a file or from the browser storage. Throws an Error with a plain message when it cannot be used.
   HTM.validate = function (T) {
-    if (!T || typeof T !== 'object' || !Array.isArray(T.players) || !HTM.FORMATS[T.format]) throw new Error('This is not a Human Tournament Maker file.');
+    if (!T || typeof T !== 'object' || !Array.isArray(T.players) || !HTM.FORMATS[T.format]) throw new Error('This is not a Tourmaker file.');
     const fmt = T.format;
     T.id = typeof T.id === 'string' && T.id ? T.id : HTM.uid('t');
     for (const k of ['name', 'city', 'organizer', 'arbiter', 'startDate', 'endDate', 'timeControl', 'notes']) T[k] = typeof T[k] === 'string' ? T[k] : '';
@@ -1065,7 +1065,7 @@ body.dragging #drop { display: flex; }
 })(typeof globalThis !== 'undefined' ? globalThis : this);
 </script>
 <script>
-/* Human Tournament Maker - small UI toolkit: DOM helper, toast, modal, storage, downloads. */
+/* Tourmaker - small UI toolkit: DOM helper, toast, modal, storage, downloads. */
 (function () {
   'use strict';
   const UI = window.UI = {};
@@ -1158,7 +1158,7 @@ body.dragging #drop { display: flex; }
 })();
 </script>
 <script>
-/* Human Tournament Maker - dialogs: new tournament, paste a player list, byes, withdrawal, manual pairings, player card, knockout match. */
+/* Tourmaker - dialogs: new tournament, paste a player list, byes, withdrawal, manual pairings, player card, knockout match. */
 (function () {
   'use strict';
   const { h, clear, toast, modal } = UI;
@@ -1414,7 +1414,7 @@ body.dragging #drop { display: flex; }
 })();
 </script>
 <script>
-/* Human Tournament Maker - the screens: tournaments list, players, pairings and results, bracket, standings, cross table, settings. */
+/* Tourmaker - the screens: tournaments list, players, pairings and results, bracket, standings, cross table, settings. */
 (function () {
   'use strict';
   const { h, clear, toast } = UI;
@@ -1825,7 +1825,7 @@ body.dragging #drop { display: flex; }
 })();
 </script>
 <script>
-/* Human Tournament Maker - application state, storage (browser storage + files), undo, navigation. */
+/* Tourmaker - application state, storage (browser storage + files), undo, navigation. */
 (function () {
   'use strict';
   const { h, clear, toast } = UI;
@@ -1970,7 +1970,7 @@ body.dragging #drop { display: flex; }
   function renderTop() {
     const top = UI.$('#topbar');
     clear(top);
-    top.append(h('div', { class: 'brand', title: 'All tournaments', style: { cursor: 'pointer' }, onclick: () => App.home() }, logo(), 'Human Tournament Maker'));
+    top.append(h('div', { class: 'brand', title: 'All tournaments', style: { cursor: 'pointer' }, onclick: () => App.home() }, logo(), 'Tourmaker'));
     if (!S.T) return;
     const T = S.T;
     const tabs = [['players', 'Players'], ['pairings', T.format === 'knockout' ? 'Bracket' : 'Pairings'], ['standings', 'Standings']];
@@ -1999,7 +1999,7 @@ body.dragging #drop { display: flex; }
     try { main.append(S.T ? (window.Views[S.view] || window.Views.players)() : window.Views.home()); } catch (e) { console.error(e); main.append(h('div', { class: 'msg err' }, 'Something went wrong while drawing this screen: ' + e.message)); }
     S.lastView = S.view;
     main.scrollTop = keep;
-    document.title = (S.T ? S.T.name + ' - ' : '') + 'Human Tournament Maker';
+    document.title = (S.T ? S.T.name + ' - ' : '') + 'Tourmaker';
     if (S.focusSel) { const el = UI.$(S.focusSel); if (el) el.focus(); S.focusSel = null; }
   };
 

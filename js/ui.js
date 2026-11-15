@@ -1,4 +1,4 @@
-/* Human Tournament Maker - small UI toolkit: DOM helper, toast, modal, storage, downloads. */
+/* Tourmaker - small UI toolkit: DOM helper, toast, modal, storage, downloads. */
 (function () {
   'use strict';
   const UI = window.UI = {};
